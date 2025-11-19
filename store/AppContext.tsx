@@ -45,7 +45,7 @@ interface AppState {
   sectors: Sector[];
   jobs: Job[];
   isLoading: boolean;
-  isSectorConfirmed: boolean; // New: Track if user selected sector this session
+  isSectorConfirmed: boolean;
   
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -65,7 +65,8 @@ interface AppState {
   deleteSector: (id: string) => Promise<void>;
   addUser: (user: Omit<User, 'id'>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
-  changeUserSector: (sectorId: string) => Promise<void>; // New: Function to change sector
+  changeUserSector: (sectorId: string) => Promise<void>;
+  updateAnyUserSector: (userId: string, sectorId: string) => Promise<void>; // New function for Admins
 
   scanModalState: ScanModalState;
   closeScanModal: () => void;
@@ -111,7 +112,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let unsubUsers: () => void;
 
     if (currentUser) {
-        setIsLoading(true);
+        // Only show loading on initial mount, but here we keep it simple
+        // setIsLoading(true); 
         
         if (currentUser.role === UserRole.ADMIN) {
             seedDatabaseIfEmpty().catch(console.error);
@@ -187,7 +189,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (updates.description && updates.description !== oldJob.description) changes.push(`Descrição técnica atualizada`);
     if (updates.isPromised !== undefined && updates.isPromised !== oldJob.isPromised) changes.push(updates.isPromised ? "Marcado como PROMETIDO (VIP)" : "Removido de PROMETIDO");
 
-    // Only add history if there are meaningful changes or status changes
     let newHistory = [...oldJob.history];
     
     if (changes.length > 0) {
@@ -258,19 +259,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const changeUserSector = async (sectorId: string) => {
       if (!currentUser) return;
-      
       try {
-        // Tentamos salvar no banco (Firebase)
         await updateUserSector(currentUser.id, sectorId);
       } catch (e) {
-        // Se falhar (por permissão ou rede), ignoramos o erro no banco 
-        // e permitimos que o usuário continue usando a sessão local.
         console.warn("Não foi possível persistir o setor no banco (falta de permissão?), usando sessão local.", e);
+        localStorage.setItem('protrack_temp_sector', sectorId);
       }
-
-      // Atualizamos o estado local IMEDIATAMENTE para liberar o acesso
       setCurrentUser({ ...currentUser, sectorId });
       setIsSectorConfirmed(true);
+  };
+  
+  // Check for local storage sector on mount if user is logged in
+  useEffect(() => {
+    if (currentUser && !isSectorConfirmed && !currentUser.sectorId) {
+        const savedSector = localStorage.getItem('protrack_temp_sector');
+        if (savedSector) {
+            setCurrentUser(prev => prev ? { ...prev, sectorId: savedSector } : null);
+            setIsSectorConfirmed(true);
+        }
+    }
+  }, [currentUser]);
+
+  const updateAnyUserSector = async (userId: string, sectorId: string) => {
+      // Allows admin to change any user's sector
+      await updateUserSector(userId, sectorId);
   };
 
   // --- Core Logic ---
@@ -400,7 +412,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider value={{ 
       currentUser, users, sectors, jobs, isLoading, isSectorConfirmed,
       login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, getJobByCode, getJobById,
-      addSector, deleteSector, addUser, deleteUser, changeUserSector,
+      addSector, deleteSector, addUser, deleteUser, changeUserSector, updateAnyUserSector,
       scanModalState, closeScanModal, confirmScanModal
     }}>
       {children}

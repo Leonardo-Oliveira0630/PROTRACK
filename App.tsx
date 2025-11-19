@@ -31,7 +31,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   );
 };
 
-const RequireSector = ({ children }: { children: React.ReactNode }) => {
+const RequireSector = ({ children }: { children?: React.ReactNode }) => {
     const { currentUser, isSectorConfirmed } = useApp();
 
     // If Admin, they skip sector selection

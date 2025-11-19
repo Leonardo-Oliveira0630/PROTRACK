@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
-import { UserCog, Plus, Trash2, User, Shield, Briefcase, Mail, AlertCircle } from 'lucide-react';
+import { UserCog, Plus, Trash2, User, Shield, Briefcase, Mail, AlertCircle, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { UserRole } from '../types';
 
 const Collaborators = () => {
-  const { users, sectors, addUser, deleteUser } = useApp();
+  const { users, sectors, addUser, deleteUser, updateAnyUserSector } = useApp();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -36,9 +36,8 @@ const Collaborators = () => {
     setFormData({ name: '', email: '', role: UserRole.COLLABORATOR, sectorId: '' });
   };
 
-  const getSectorName = (id?: string) => {
-      if (!id) return '-';
-      return sectors.find(s => s.id === id)?.name || 'Setor Desconhecido';
+  const handleSectorChange = async (userId: string, newSectorId: string) => {
+      await updateAnyUserSector(userId, newSectorId);
   };
 
   return (
@@ -96,7 +95,7 @@ const Collaborators = () => {
             </div>
             <div className="md:col-span-1">
                 <label className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-1">
-                    Setor
+                    Setor Inicial
                     {sectors.length === 0 && (
                         <Link to="/sectors" className="text-blue-500 hover:underline font-normal lowercase flex items-center gap-1">
                             <Plus size={10} /> criar setores
@@ -167,10 +166,23 @@ const Collaborators = () => {
                                 </div>
                             </td>
                             <td className="p-4 text-sm text-slate-600">
-                                {user.role === UserRole.ADMIN && !user.sectorId
-                                    ? <span className="text-slate-400 italic">Acesso Global</span> 
-                                    : <span className="font-medium">{getSectorName(user.sectorId)}</span>
-                                }
+                                <div className="relative max-w-[200px]">
+                                    <select 
+                                        value={user.sectorId || ''}
+                                        onChange={(e) => handleSectorChange(user.id, e.target.value)}
+                                        className={`w-full pl-3 pr-8 py-1.5 rounded-lg text-sm font-medium border appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer transition-colors ${
+                                            user.sectorId 
+                                            ? 'bg-white border-slate-200 text-slate-700 hover:border-blue-300' 
+                                            : 'bg-slate-50 border-slate-200 text-slate-400 italic hover:bg-white'
+                                        }`}
+                                    >
+                                        <option value="">Acesso Global / Sem Setor</option>
+                                        {sectors.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                                </div>
                             </td>
                             <td className="p-4 pr-6 text-right">
                                 <button 
