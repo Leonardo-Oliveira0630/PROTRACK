@@ -84,7 +84,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, sectorName, isEditing, tempNote,
                         <button 
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if(window.confirm("Finalizar este trabalho prometido?")) onFinish(job.id);
+                                onFinish(job.id);
                             }}
                             className="p-2 bg-slate-100 text-slate-400 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors h-[40px]"
                             title="Finalizar Agora"

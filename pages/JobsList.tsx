@@ -38,9 +38,7 @@ const JobsList = () => {
 
   const handleFinish = (e: React.MouseEvent, jobId: string) => {
       e.stopPropagation();
-      if (window.confirm("Confirmar finalização deste trabalho? Isso encerrará o ciclo de produção.")) {
-          finishJob(jobId);
-      }
+      finishJob(jobId);
   };
 
   return (

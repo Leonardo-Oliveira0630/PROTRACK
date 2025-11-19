@@ -37,8 +37,10 @@ export const subscribeToJobs = (callback: (jobs: Job[]) => void) => {
         const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         callback(jobs);
     }, (error) => {
-        console.warn("Error subscribing to jobs (likely permission issue before login):", error);
-        callback([]); // Fallback to empty list if permission denied
+        if (error.code !== 'permission-denied') {
+             console.warn("Error subscribing to jobs:", error);
+        }
+        callback([]);
     });
 };
 
@@ -48,7 +50,9 @@ export const subscribeToSectors = (callback: (sectors: Sector[]) => void) => {
         const sectors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sector));
         callback(sectors);
     }, (error) => {
-        console.warn("Error subscribing to sectors:", error);
+        if (error.code !== 'permission-denied') {
+            console.warn("Error subscribing to sectors:", error);
+        }
         callback([]);
     });
 };
@@ -59,7 +63,9 @@ export const subscribeToUsers = (callback: (users: User[]) => void) => {
         const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
         callback(users);
     }, (error) => {
-        console.warn("Error subscribing to users:", error);
+        if (error.code !== 'permission-denied') {
+            console.warn("Error subscribing to users:", error);
+        }
         callback([]);
     });
 };
@@ -107,26 +113,35 @@ export const registerNewUser = async (name: string, email: string, password: str
     const { uid } = userCredential.user;
 
     // 2. Check if Admin has PRE-REGISTERED this email (Invite system)
-    const q = query(collection(db, USERS_COL), where("email", "==", email));
-    const querySnapshot = await getDocs(q);
-    
     let role = UserRole.COLLABORATOR;
     let sectorId = '';
     let existingDocId = null;
 
-    if (!querySnapshot.empty) {
-        // Found a pre-registration!
-        const existingData = querySnapshot.docs[0].data() as User;
-        existingDocId = querySnapshot.docs[0].id;
-        role = existingData.role;
-        sectorId = existingData.sectorId || '';
-        console.log("Found pre-registration for:", email, "Role:", role);
-    } else {
-        // No pre-registration, check if it's the very first user to make Admin
-        const usersSnapshot = await getDocs(collection(db, USERS_COL));
-        if (usersSnapshot.empty) {
-            role = UserRole.ADMIN;
+    try {
+        const q = query(collection(db, USERS_COL), where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            // Found a pre-registration!
+            const existingData = querySnapshot.docs[0].data() as User;
+            existingDocId = querySnapshot.docs[0].id;
+            role = existingData.role;
+            sectorId = existingData.sectorId || '';
+            console.log("Found pre-registration for:", email, "Role:", role);
+        } else {
+            // No pre-registration, check if it's the very first user to make Admin
+            // Wrap in try-catch because new users might not have permission to list all users yet
+            try {
+                const usersSnapshot = await getDocs(collection(db, USERS_COL));
+                if (usersSnapshot.empty) {
+                    role = UserRole.ADMIN;
+                }
+            } catch (e) {
+                console.log("Skipping empty DB check due to permissions (likely standard user registration)");
+            }
         }
+    } catch (error) {
+        console.log("Error checking existing users, defaulting to COLLABORATOR role.", error);
     }
 
     const newUser: User = {
@@ -142,7 +157,11 @@ export const registerNewUser = async (name: string, email: string, password: str
 
     // 4. If there was a pre-registration doc with a random ID, delete it now to avoid duplicates
     if (existingDocId && existingDocId !== uid) {
-        await deleteDoc(doc(db, USERS_COL, existingDocId));
+        try {
+            await deleteDoc(doc(db, USERS_COL, existingDocId));
+        } catch (e) {
+            console.warn("Could not delete pre-registration doc (permissions?), but new user created.");
+        }
     }
     
     return newUser;
@@ -178,6 +197,11 @@ export const updateUserSector = async (userId: string, sectorId: string) => {
     await updateDoc(ref, { sectorId });
 };
 
+export const updateUserRole = async (userId: string, role: UserRole) => {
+    const ref = doc(db, USERS_COL, userId);
+    await updateDoc(ref, { role });
+};
+
 export const deleteUserFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, USERS_COL, id));
 };
@@ -197,6 +221,6 @@ export const seedDatabaseIfEmpty = async () => {
             await batch.commit();
         }
     } catch (e) {
-        console.warn("Seeding skipped (likely insufficient permissions or already seeded).");
+        // Ignore
     }
 };

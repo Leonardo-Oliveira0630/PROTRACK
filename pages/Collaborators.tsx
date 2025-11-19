@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
-import { UserCog, Plus, Trash2, User, Shield, Briefcase, Mail, AlertCircle, ChevronDown } from 'lucide-react';
+import { UserCog, Plus, Trash2, User, Shield, Briefcase, Mail, AlertCircle, ChevronDown, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { UserRole } from '../types';
 
 const Collaborators = () => {
-  const { users, sectors, addUser, deleteUser, updateAnyUserSector } = useApp();
+  const { users, sectors, addUser, deleteUser, updateAnyUserSector, updateAnyUserRole } = useApp();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -19,13 +19,6 @@ const Collaborators = () => {
     e.preventDefault();
     if (!formData.name || !formData.email) return;
     
-    // Se for Colaborador, sugerimos fortemente um setor, mas não bloqueamos 100% se for intencional
-    if (formData.role === UserRole.COLLABORATOR && !formData.sectorId && sectors.length > 0) {
-        if(!window.confirm("Este colaborador não tem um setor vinculado. Deseja continuar?")) {
-            return;
-        }
-    }
-
     addUser({
         name: formData.name,
         email: formData.email,
@@ -40,11 +33,15 @@ const Collaborators = () => {
       await updateAnyUserSector(userId, newSectorId);
   };
 
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+      await updateAnyUserRole(userId, newRole);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Gerenciamento de Equipe</h2>
-        <p className="text-slate-500 text-sm">Cadastre colaboradores e defina suas permissões e setores.</p>
+        <p className="text-slate-500 text-sm">Cadastre colaboradores e defina suas permissões (Admin, Gestor, Operador) e setores.</p>
       </div>
 
       {/* Add Form */}
@@ -89,8 +86,9 @@ const Collaborators = () => {
                     onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white"
                 >
-                    <option value={UserRole.COLLABORATOR}>Colaborador</option>
-                    <option value={UserRole.ADMIN}>Administrador</option>
+                    <option value={UserRole.COLLABORATOR}>Colaborador (Operador)</option>
+                    <option value={UserRole.MANAGER}>Gestor (Gerente de Produção)</option>
+                    <option value={UserRole.ADMIN}>Administrador (Acesso Total)</option>
                 </select>
             </div>
             <div className="md:col-span-1">
@@ -107,7 +105,7 @@ const Collaborators = () => {
                     onChange={(e) => setFormData({...formData, sectorId: e.target.value})}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white"
                 >
-                    <option value="">{formData.role === UserRole.ADMIN ? 'Acesso Global (Opcional)' : 'Selecione um Setor...'}</option>
+                    <option value="">{formData.role !== UserRole.COLLABORATOR ? 'Acesso Global (Opcional)' : 'Selecione um Setor...'}</option>
                     {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
             </div>
@@ -136,7 +134,7 @@ const Collaborators = () => {
                 <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
                         <th className="p-4 pl-6">Usuário / Email</th>
-                        <th className="p-4">Permissão</th>
+                        <th className="p-4">Permissão / Cargo</th>
                         <th className="p-4">Setor Atribuído</th>
                         <th className="p-4 text-right pr-6">Ações</th>
                     </tr>
@@ -156,13 +154,30 @@ const Collaborators = () => {
                                 </div>
                             </td>
                             <td className="p-4">
-                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${
-                                    user.role === UserRole.ADMIN 
-                                    ? 'bg-purple-50 text-purple-700 border-purple-200' 
-                                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                                }`}>
-                                    {user.role === UserRole.ADMIN ? <Shield size={12} /> : <Briefcase size={12} />}
-                                    {user.role === UserRole.ADMIN ? 'Admin' : 'Operador'}
+                                <div className="relative max-w-[180px]">
+                                    <div className={`absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none ${
+                                        user.role === UserRole.ADMIN ? 'text-purple-600' : 
+                                        user.role === UserRole.MANAGER ? 'text-amber-600' : 'text-blue-600'
+                                    }`}>
+                                        {user.role === UserRole.ADMIN ? <Shield size={14} /> : 
+                                         user.role === UserRole.MANAGER ? <Crown size={14} /> : <Briefcase size={14} />}
+                                    </div>
+                                    <select 
+                                        value={user.role}
+                                        onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                                        className={`w-full pl-8 pr-8 py-1.5 rounded-lg text-xs font-bold border appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer transition-colors uppercase tracking-wide ${
+                                            user.role === UserRole.ADMIN 
+                                            ? 'bg-purple-50 border-purple-200 text-purple-700' 
+                                            : user.role === UserRole.MANAGER
+                                            ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                            : 'bg-blue-50 border-blue-200 text-blue-700'
+                                        }`}
+                                    >
+                                        <option value={UserRole.COLLABORATOR}>Operador</option>
+                                        <option value={UserRole.MANAGER}>Gestor</option>
+                                        <option value={UserRole.ADMIN}>Admin</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
                                 </div>
                             </td>
                             <td className="p-4 text-sm text-slate-600">

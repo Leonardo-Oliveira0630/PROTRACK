@@ -108,9 +108,7 @@ const JobDetails = () => {
                 {!job.isFinished && (
                     <div className="border-t border-slate-100 pt-6 mt-6 flex justify-end">
                         <button 
-                            onClick={() => {
-                                if(window.confirm("Deseja realmente finalizar este caso?")) finishJob(job.id);
-                            }}
+                            onClick={() => finishJob(job.id)}
                             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-green-900/20"
                         >
                             <CheckCircle2 size={20} />

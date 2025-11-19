@@ -13,6 +13,8 @@ const Sidebar = () => {
     ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/50 border-l-4 border-white' 
     : 'text-slate-400 hover:bg-slate-800/50 hover:text-white border-l-4 border-transparent';
 
+  const isManagement = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER;
+
   return (
     <div className="h-screen w-64 bg-[#0f172a] flex flex-col fixed left-0 top-0 z-50 shadow-2xl transition-all duration-300 border-r border-slate-800/50">
       {/* Header with Tech Gradient Text */}
@@ -30,7 +32,8 @@ const Sidebar = () => {
         </h1>
         <div className="mt-6 flex flex-col pl-1">
             <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold mb-1">
-                {currentUser?.role === UserRole.ADMIN ? 'Gestão Laboratorial' : 'Operador Técnico'}
+                {currentUser?.role === UserRole.ADMIN ? 'Administrador' : 
+                 currentUser?.role === UserRole.MANAGER ? 'Gestor de Produção' : 'Operador Técnico'}
             </span>
             <span className="text-sm text-slate-200 font-medium truncate">
                 {currentUser?.name}
@@ -67,10 +70,10 @@ const Sidebar = () => {
           <span>Calendário</span>
         </Link>
 
-        {currentUser?.role === UserRole.ADMIN && (
+        {isManagement && (
           <>
             <div className="mt-8 px-4 pb-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                Administrativo
+                Gestão
             </div>
             <Link to="/create-job" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/create-job')}`}>
               <PlusCircle size={18} />
@@ -86,10 +89,12 @@ const Sidebar = () => {
               <span>Colaboradores</span>
             </Link>
 
-            <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/admin')}`}>
-              <Users size={18} />
-              <span>Trocar Usuário</span>
-            </Link>
+            {currentUser?.role === UserRole.ADMIN && (
+                <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/admin')}`}>
+                <Users size={18} />
+                <span>Configurações</span>
+                </Link>
+            )}
           </>
         )}
       </nav>

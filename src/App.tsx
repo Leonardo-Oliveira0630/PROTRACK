@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
@@ -34,8 +35,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
 const RequireSector = ({ children }: { children?: React.ReactNode }) => {
     const { currentUser, isSectorConfirmed } = useApp();
 
-    // If Admin, they skip sector selection
-    if (currentUser?.role === UserRole.ADMIN) {
+    // If Admin or Manager, they skip sector selection (Global Access)
+    if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER) {
         return <>{children}</>;
     }
 

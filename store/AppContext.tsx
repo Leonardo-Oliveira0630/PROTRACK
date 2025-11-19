@@ -16,7 +16,8 @@ import {
     registerNewUser,
     logoutUser,
     monitorAuthState,
-    updateUserSector
+    updateUserSector,
+    updateUserRole
 } from '../services/firebaseService';
 
 interface ScanResult {
@@ -66,7 +67,8 @@ interface AppState {
   addUser: (user: Omit<User, 'id'>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   changeUserSector: (sectorId: string) => Promise<void>;
-  updateAnyUserSector: (userId: string, sectorId: string) => Promise<void>; // New function for Admins
+  updateAnyUserSector: (userId: string, sectorId: string) => Promise<void>;
+  updateAnyUserRole: (userId: string, role: UserRole) => Promise<void>;
 
   scanModalState: ScanModalState;
   closeScanModal: () => void;
@@ -99,8 +101,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentUser(user);
       // Reset sector confirmation on logout or user switch
       if (!user) setIsSectorConfirmed(false);
-      // Admins are auto-confirmed
-      if (user && user.role === UserRole.ADMIN) setIsSectorConfirmed(true);
+      // Admins and Managers are auto-confirmed (Global Access)
+      if (user && (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER)) {
+        setIsSectorConfirmed(true);
+      }
     });
     return () => unsubscribeAuth();
   }, []);
@@ -112,9 +116,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let unsubUsers: () => void;
 
     if (currentUser) {
-        // Only show loading on initial mount, but here we keep it simple
-        // setIsLoading(true); 
-        
+        // Check permission/role to decide if we should seed
         if (currentUser.role === UserRole.ADMIN) {
             seedDatabaseIfEmpty().catch(console.error);
         }
@@ -172,7 +174,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await addJobToFirestore(jobData as any);
   };
 
-  // Smart Update with History Tracking
   const updateJob = async (jobId: string, updates: Partial<Job>) => {
     if (!currentUser) return;
 
@@ -181,7 +182,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const changes: string[] = [];
 
-    // Detect changes for history
     if (updates.patientName && updates.patientName !== oldJob.patientName) changes.push(`Paciente alterado para: ${updates.patientName}`);
     if (updates.dentistName && updates.dentistName !== oldJob.dentistName) changes.push(`Dentista alterado para: ${updates.dentistName}`);
     if (updates.urgency && updates.urgency !== oldJob.urgency) changes.push(`Urgência alterada: ${oldJob.urgency} -> ${updates.urgency}`);
@@ -269,7 +269,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setIsSectorConfirmed(true);
   };
   
-  // Check for local storage sector on mount if user is logged in
+  // Check for local storage sector on mount
   useEffect(() => {
     if (currentUser && !isSectorConfirmed && !currentUser.sectorId) {
         const savedSector = localStorage.getItem('protrack_temp_sector');
@@ -281,8 +281,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentUser]);
 
   const updateAnyUserSector = async (userId: string, sectorId: string) => {
-      // Allows admin to change any user's sector
       await updateUserSector(userId, sectorId);
+  };
+
+  const updateAnyUserRole = async (userId: string, role: UserRole) => {
+      await updateUserRole(userId, role);
   };
 
   // --- Core Logic ---
@@ -297,8 +300,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return { action: 'INFO', message: "Trabalho já finalizado!", job };
     }
 
-    if (currentUser.role === UserRole.ADMIN) {
-       return { action: 'INFO', message: "Visualização de Admin", job };
+    // Admins and Managers see info mode
+    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) {
+       return { action: 'INFO', message: "Visualização de Gestão (Admin/Gestor)", job };
     }
 
     const mySector = sectors.find(s => s.id === currentUser.sectorId);
@@ -322,8 +326,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (job.isFinished) return { success: false, message: "Trabalho já finalizado", type: 'INFO' };
 
-    if (currentUser.role === UserRole.ADMIN) {
-       return { success: true, message: "Visualização de Admin", type: 'INFO', jobDetails: job };
+    // Admin/Manager just view
+    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) {
+       return { success: true, message: "Visualização de Gestão", type: 'INFO', jobDetails: job };
     }
 
     const mySector = sectors.find(s => s.id === currentUser.sectorId);
@@ -412,7 +417,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider value={{ 
       currentUser, users, sectors, jobs, isLoading, isSectorConfirmed,
       login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, getJobByCode, getJobById,
-      addSector, deleteSector, addUser, deleteUser, changeUserSector, updateAnyUserSector,
+      addSector, deleteSector, addUser, deleteUser, changeUserSector, updateAnyUserSector, updateAnyUserRole,
       scanModalState, closeScanModal, confirmScanModal
     }}>
       {children}
