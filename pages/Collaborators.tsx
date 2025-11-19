@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { UserCog, Plus, Trash2, User, Shield, Briefcase } from 'lucide-react';
+import { UserCog, Plus, Trash2, User, Shield, Briefcase, Mail } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { UserRole } from '../types';
 
@@ -8,13 +9,14 @@ const Collaborators = () => {
   
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     role: UserRole.COLLABORATOR,
     sectorId: ''
   });
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) return;
+    if (!formData.name || !formData.email) return;
     
     // If Collaborator, requires sector
     if (formData.role === UserRole.COLLABORATOR && !formData.sectorId) {
@@ -22,14 +24,14 @@ const Collaborators = () => {
         return;
     }
 
-    // Firestore generates ID
     addUser({
         name: formData.name,
+        email: formData.email,
         role: formData.role,
         sectorId: formData.role === UserRole.COLLABORATOR ? formData.sectorId : undefined
     });
 
-    setFormData({ name: '', role: UserRole.COLLABORATOR, sectorId: '' });
+    setFormData({ name: '', email: '', role: UserRole.COLLABORATOR, sectorId: '' });
   };
 
   const getSectorName = (id?: string) => {
@@ -48,21 +50,38 @@ const Collaborators = () => {
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Plus className="text-blue-500" size={18} />
-            Cadastrar Novo Usuário
+            Pré-Cadastrar Novo Usuário
         </h3>
-        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div className="md:col-span-2">
+        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div className="md:col-span-1">
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Completo</label>
-                <input 
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="Ex: João da Silva"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
-                    required
-                />
+                <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input 
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        placeholder="Ex: João da Silva"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
+                        required
+                    />
+                </div>
             </div>
-            <div>
+            <div className="md:col-span-1">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email de Acesso</label>
+                <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input 
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        placeholder="joao@lab.com"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
+                        required
+                    />
+                </div>
+            </div>
+            <div className="md:col-span-1">
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Função</label>
                 <select 
                     value={formData.role}
@@ -73,7 +92,7 @@ const Collaborators = () => {
                     <option value={UserRole.ADMIN}>Administrador</option>
                 </select>
             </div>
-            <div>
+            <div className="md:col-span-1">
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
                 <select 
                     value={formData.sectorId}
@@ -85,13 +104,16 @@ const Collaborators = () => {
                     {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
             </div>
-            <div className="md:col-span-4">
+            <div className="md:col-span-2 mt-2">
                 <button 
                     type="submit"
                     className="w-full px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-blue-600 font-bold transition-all shadow-lg shadow-slate-900/20 flex justify-center items-center gap-2"
                 >
-                    <Plus size={18} /> Cadastrar Usuário
+                    <Plus size={18} /> Salvar Pré-Cadastro
                 </button>
+                <p className="text-xs text-slate-400 mt-2 text-center">
+                    O usuário deverá usar este email ao se cadastrar na tela de login para assumir estas permissões.
+                </p>
             </div>
         </form>
       </div>
@@ -106,7 +128,7 @@ const Collaborators = () => {
             <table className="w-full text-left border-collapse">
                 <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
-                        <th className="p-4 pl-6">Usuário</th>
+                        <th className="p-4 pl-6">Usuário / Email</th>
                         <th className="p-4">Permissão</th>
                         <th className="p-4">Setor Atribuído</th>
                         <th className="p-4 text-right pr-6">Ações</th>
@@ -117,10 +139,13 @@ const Collaborators = () => {
                         <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                             <td className="p-4 pl-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-slate-600 flex items-center justify-center">
+                                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-slate-600 flex items-center justify-center shrink-0">
                                         <User size={16} />
                                     </div>
-                                    <span className="font-bold text-slate-700">{user.name}</span>
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-700">{user.name}</span>
+                                        {user.email && <span className="text-xs text-slate-400">{user.email}</span>}
+                                    </div>
                                 </div>
                             </td>
                             <td className="p-4">

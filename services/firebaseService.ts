@@ -106,23 +106,44 @@ export const registerNewUser = async (name: string, email: string, password: str
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const { uid } = userCredential.user;
 
-    // 2. Check if this is the FIRST user in the database
-    // We use getDocs here. Note: If rules prevent reading users before auth, this works because we are now authenticated as the new user.
-    const usersSnapshot = await getDocs(collection(db, USERS_COL));
-    const isFirstUser = usersSnapshot.empty;
+    // 2. Check if Admin has PRE-REGISTERED this email (Invite system)
+    const q = query(collection(db, USERS_COL), where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    let role = UserRole.COLLABORATOR;
+    let sectorId = '';
+    let existingDocId = null;
 
-    const role = isFirstUser ? UserRole.ADMIN : UserRole.COLLABORATOR;
+    if (!querySnapshot.empty) {
+        // Found a pre-registration!
+        const existingData = querySnapshot.docs[0].data() as User;
+        existingDocId = querySnapshot.docs[0].id;
+        role = existingData.role;
+        sectorId = existingData.sectorId || '';
+        console.log("Found pre-registration for:", email, "Role:", role);
+    } else {
+        // No pre-registration, check if it's the very first user to make Admin
+        const usersSnapshot = await getDocs(collection(db, USERS_COL));
+        if (usersSnapshot.empty) {
+            role = UserRole.ADMIN;
+        }
+    }
 
     const newUser: User = {
         id: uid,
         name,
         email,
         role,
-        sectorId: '' // Initially no sector
+        sectorId
     };
 
-    // 3. Create User Document in Firestore with the same UID as Auth
+    // 3. Create the definitive User Document with the Auth UID
     await setDoc(doc(db, USERS_COL, uid), newUser);
+
+    // 4. If there was a pre-registration doc with a random ID, delete it now to avoid duplicates
+    if (existingDocId && existingDocId !== uid) {
+        await deleteDoc(doc(db, USERS_COL, existingDocId));
+    }
     
     return newUser;
 };
@@ -147,8 +168,8 @@ export const deleteSectorFromFirestore = async (id: string) => {
 };
 
 export const addUserToFirestore = async (user: Omit<User, 'id'>) => {
-    // This is for Admin creating other users manually WITHOUT password (mock placeholder)
-    // Real app would likely trigger a Cloud Function to create Auth user
+    // This creates a "placeholder" user in the DB. 
+    // The actual Auth account is created when they Register with this email.
     await addDoc(collection(db, USERS_COL), user);
 };
 
