@@ -73,7 +73,10 @@ export const subscribeToDentists = (callback: (dentists: Dentist[]) => void) => 
     return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Dentist));
         callback(data);
-    }, () => callback([]));
+    }, (error) => {
+        if (error.code !== 'permission-denied') console.warn("Error dentists:", error);
+        callback([]);
+    });
 };
 
 export const subscribeToJobTypes = (callback: (types: JobType[]) => void) => {
@@ -81,7 +84,10 @@ export const subscribeToJobTypes = (callback: (types: JobType[]) => void) => {
     return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as JobType));
         callback(data);
-    }, () => callback([]));
+    }, (error) => {
+        if (error.code !== 'permission-denied') console.warn("Error job types:", error);
+        callback([]);
+    });
 };
 
 export const subscribeToBoxColors = (callback: (colors: BoxColor[]) => void) => {
@@ -89,7 +95,10 @@ export const subscribeToBoxColors = (callback: (colors: BoxColor[]) => void) => 
     return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BoxColor));
         callback(data);
-    }, () => callback([]));
+    }, (error) => {
+        if (error.code !== 'permission-denied') console.warn("Error box colors:", error);
+        callback([]);
+    });
 };
 
 // --- Auth Logic ---

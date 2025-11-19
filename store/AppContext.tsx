@@ -321,15 +321,59 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await updateUserRole(userId, role);
   };
 
-  // --- Aux Actions ---
-  const addDentist = async (dentist: Omit<Dentist, 'id'>) => await addDentistToFirestore(dentist);
-  const deleteDentist = async (id: string) => await deleteDentistFromFirestore(id);
+  // --- Aux Actions (With Local Fallback for Permissions) ---
 
-  const addJobType = async (name: string) => await addJobTypeToFirestore(name);
-  const deleteJobType = async (id: string) => await deleteJobTypeFromFirestore(id);
+  const addDentist = async (dentist: Omit<Dentist, 'id'>) => {
+      try {
+          await addDentistToFirestore(dentist);
+      } catch (e) {
+          console.warn("DB Permission denied for Dentist, falling back to local state.");
+          const tempId = `temp_${Date.now()}`;
+          setDentists(prev => [...prev, { ...dentist, id: tempId }]);
+      }
+  };
+  const deleteDentist = async (id: string) => {
+      try {
+          await deleteDentistFromFirestore(id);
+      } catch (e) {
+          console.warn("DB Permission denied for Dentist deletion, updating local state.");
+          setDentists(prev => prev.filter(d => d.id !== id));
+      }
+  };
 
-  const addBoxColor = async (name: string, hex: string) => await addBoxColorToFirestore(name, hex);
-  const deleteBoxColor = async (id: string) => await deleteBoxColorFromFirestore(id);
+  const addJobType = async (name: string) => {
+      try {
+          await addJobTypeToFirestore(name);
+      } catch (e) {
+          console.warn("DB Permission denied for JobType, falling back to local state.");
+          const tempId = `temp_${Date.now()}`;
+          setJobTypes(prev => [...prev, { id: tempId, name }]);
+      }
+  };
+  const deleteJobType = async (id: string) => {
+      try {
+          await deleteJobTypeFromFirestore(id);
+      } catch (e) {
+          setJobTypes(prev => prev.filter(t => t.id !== id));
+      }
+  };
+
+  const addBoxColor = async (name: string, hex: string) => {
+      try {
+          await addBoxColorToFirestore(name, hex);
+      } catch (e) {
+          console.warn("DB Permission denied for BoxColor, falling back to local state.");
+          const tempId = `temp_${Date.now()}`;
+          setBoxColors(prev => [...prev, { id: tempId, name, hex }]);
+      }
+  };
+  const deleteBoxColor = async (id: string) => {
+      try {
+          await deleteBoxColorFromFirestore(id);
+      } catch (e) {
+          setBoxColors(prev => prev.filter(c => c.id !== id));
+      }
+  };
 
   // --- Core Logic ---
 

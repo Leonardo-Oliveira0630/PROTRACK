@@ -176,7 +176,12 @@ const JobsList = () => {
                                             {job.boxNumber && (
                                                 <span 
                                                     className="text-[10px] px-1.5 py-0.5 rounded-md border flex items-center gap-1 shadow-sm"
-                                                    style={{ backgroundColor: job.boxColor || '#f1f5f9', borderColor: 'rgba(0,0,0,0.1)', color: '#334155' }}
+                                                    style={{ 
+                                                        backgroundColor: job.boxColor || '#f1f5f9', 
+                                                        borderColor: 'rgba(0,0,0,0.1)', 
+                                                        color: '#FFFFFF',
+                                                        textShadow: '0px 1px 2px rgba(0,0,0,0.3)' 
+                                                    }}
                                                 >
                                                     <Box size={8} /> {job.boxNumber}
                                                 </span>
