@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { Job, JobStatus, UrgencyLevel } from '../types';
-import { Save, ArrowLeft, User, FileText, Calendar, Star, Stethoscope } from 'lucide-react';
+import { Save, ArrowLeft, User, FileText, Calendar, Star, Stethoscope, Box, Plus } from 'lucide-react';
 
 const JobCreate = () => {
   const navigate = useNavigate();
-  const { addJob, sectors, currentUser } = useApp();
+  const { addJob, sectors, currentUser, dentists, jobTypes, boxColors } = useApp();
   
   const [formData, setFormData] = useState({
     code: '',
@@ -18,7 +18,9 @@ const JobCreate = () => {
     deliveryDate: '',
     urgency: UrgencyLevel.MEDIUM,
     startSectorId: sectors[0]?.id || '',
-    isPromised: false
+    isPromised: false,
+    boxNumber: '',
+    boxColor: boxColors[0]?.hex || '#cccccc'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,6 +40,8 @@ const JobCreate = () => {
         status: JobStatus.PENDING,
         isFinished: false,
         isPromised: formData.isPromised,
+        boxNumber: formData.boxNumber,
+        boxColor: formData.boxColor,
         history: [
             {
                 id: Date.now().toString(),
@@ -89,17 +93,32 @@ const JobCreate = () => {
                         />
                     </div>
                     <div className="md:col-span-1">
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Dentista / Clínica</label>
+                        <label className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            Dentista / Clínica
+                            {dentists.length === 0 && <Link to="/dentists" className="text-blue-600 text-xs font-normal flex items-center"><Plus size={12}/> Cadastrar</Link>}
+                        </label>
                         <div className="relative">
                             <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input 
-                                required
-                                type="text" 
-                                value={formData.dentistName}
-                                onChange={e => setFormData({...formData, dentistName: e.target.value})}
-                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all"
-                                placeholder="Dr(a). Solicitante"
-                            />
+                            {dentists.length > 0 ? (
+                                <select 
+                                    required
+                                    value={formData.dentistName}
+                                    onChange={e => setFormData({...formData, dentistName: e.target.value})}
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all bg-white"
+                                >
+                                    <option value="">Selecione...</option>
+                                    {dentists.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                                </select>
+                            ) : (
+                                <input 
+                                    required
+                                    type="text"
+                                    value={formData.dentistName}
+                                    onChange={e => setFormData({...formData, dentistName: e.target.value})}
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 outline-none"
+                                    placeholder="Nome do Dentista"
+                                />
+                            )}
                         </div>
                     </div>
                     <div className="md:col-span-1">
@@ -124,15 +143,30 @@ const JobCreate = () => {
                 </div>
                 <div className="grid grid-cols-1 gap-6">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Tipo de Prótese</label>
-                        <input 
-                            required
-                            type="text" 
-                            value={formData.prosthesisType}
-                            onChange={e => setFormData({...formData, prosthesisType: e.target.value})}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-purple-50 focus:border-purple-500 outline-none transition-all"
-                            placeholder="Ex: Coroa Zircônia, Lente E-max, Protocolo..."
-                        />
+                        <label className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            Tipo de Prótese
+                            {jobTypes.length === 0 && <Link to="/job-types" className="text-purple-600 text-xs font-normal flex items-center"><Plus size={12}/> Cadastrar</Link>}
+                        </label>
+                        {jobTypes.length > 0 ? (
+                            <select 
+                                required
+                                value={formData.prosthesisType}
+                                onChange={e => setFormData({...formData, prosthesisType: e.target.value})}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-purple-50 focus:border-purple-500 outline-none transition-all bg-white"
+                            >
+                                <option value="">Selecione o serviço...</option>
+                                {jobTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                            </select>
+                        ) : (
+                            <input 
+                                required
+                                type="text"
+                                value={formData.prosthesisType}
+                                onChange={e => setFormData({...formData, prosthesisType: e.target.value})}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none"
+                                placeholder="Ex: Coroa Zircônia"
+                            />
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Observações / Cor / Dentes</label>
@@ -144,6 +178,46 @@ const JobCreate = () => {
                             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-purple-50 focus:border-purple-500 outline-none transition-all resize-none"
                             placeholder="Descreva detalhes técnicos: Escala de cor (A1, BL3), tipo de implante, antagonista..."
                         />
+                    </div>
+                </div>
+            </div>
+
+            {/* Section 3: Box Info */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                    <Box className="text-amber-500" size={20} />
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Identificação Física (Caixa)</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Número da Caixa</label>
+                        <input 
+                            type="text"
+                            value={formData.boxNumber}
+                            onChange={e => setFormData({...formData, boxNumber: e.target.value})}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-amber-50 focus:border-amber-500 outline-none transition-all text-center font-mono font-bold text-lg"
+                            placeholder="#"
+                        />
+                    </div>
+                    <div>
+                        <label className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                            Cor da Caixa
+                            {boxColors.length === 0 && <Link to="/box-colors" className="text-amber-600 text-xs font-normal flex items-center"><Plus size={12}/> Cadastrar</Link>}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {boxColors.length > 0 ? boxColors.map(c => (
+                                <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => setFormData({...formData, boxColor: c.hex})}
+                                    className={`w-10 h-10 rounded-full border-2 transition-all ${formData.boxColor === c.hex ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                                    style={{ backgroundColor: c.hex, borderColor: formData.boxColor === c.hex ? '#fff' : 'transparent' }}
+                                    title={c.name}
+                                ></button>
+                            )) : (
+                                <p className="text-xs text-slate-400">Cadastre cores para selecionar.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

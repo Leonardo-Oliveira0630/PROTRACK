@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
@@ -16,6 +17,9 @@ import GlobalScanModal from './components/GlobalScanModal';
 import ProductionCalendar from './pages/ProductionCalendar';
 import JobDetails from './pages/JobDetails';
 import SectorSelection from './pages/SectorSelection';
+import Dentists from './pages/Dentists';
+import JobTypes from './pages/JobTypes';
+import BoxColors from './pages/BoxColors';
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   return (
@@ -34,8 +38,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
 const RequireSector = ({ children }: { children?: React.ReactNode }) => {
     const { currentUser, isSectorConfirmed } = useApp();
 
-    // If Admin, they skip sector selection
-    if (currentUser?.role === UserRole.ADMIN) {
+    // If Admin or Manager, they skip sector selection (Global Access)
+    if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER) {
         return <>{children}</>;
     }
 
@@ -57,10 +61,8 @@ const AppContent = () => {
   return (
     <HashRouter>
       <Routes>
-        {/* Special Route for Sector Selection (No Sidebar) */}
         <Route path="/select-sector" element={<SectorSelection />} />
 
-        {/* Protected Routes (With Sidebar) */}
         <Route path="/*" element={
             <RequireSector>
                 <Layout>
@@ -73,8 +75,15 @@ const AppContent = () => {
                         <Route path="/calendar" element={<ProductionCalendar />} />
                         <Route path="/create-job" element={<JobCreate />} />
                         <Route path="/admin" element={<Admin />} />
+                        
                         <Route path="/sectors" element={<Sectors />} />
                         <Route path="/collaborators" element={<Collaborators />} />
+                        
+                        {/* New Routes */}
+                        <Route path="/dentists" element={<Dentists />} />
+                        <Route path="/job-types" element={<JobTypes />} />
+                        <Route path="/box-colors" element={<BoxColors />} />
+
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Layout>

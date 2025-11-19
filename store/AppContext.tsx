@@ -1,10 +1,13 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { Job, User, Sector, UserRole, JobHistory, JobStatus } from '../types';
+import { Job, User, Sector, UserRole, JobHistory, JobStatus, Dentist, JobType, BoxColor } from '../types';
 import { 
     subscribeToJobs, 
     subscribeToSectors, 
     subscribeToUsers, 
+    subscribeToDentists,
+    subscribeToJobTypes,
+    subscribeToBoxColors,
     addJobToFirestore, 
     updateJobInFirestore,
     addSectorToFirestore,
@@ -17,7 +20,13 @@ import {
     logoutUser,
     monitorAuthState,
     updateUserSector,
-    updateUserRole
+    updateUserRole,
+    addDentistToFirestore,
+    deleteDentistFromFirestore,
+    addJobTypeToFirestore,
+    deleteJobTypeFromFirestore,
+    addBoxColorToFirestore,
+    deleteBoxColorFromFirestore
 } from '../services/firebaseService';
 
 interface ScanResult {
@@ -45,6 +54,9 @@ interface AppState {
   users: User[];
   sectors: Sector[];
   jobs: Job[];
+  dentists: Dentist[];
+  jobTypes: JobType[];
+  boxColors: BoxColor[];
   isLoading: boolean;
   isSectorConfirmed: boolean;
   
@@ -64,11 +76,19 @@ interface AppState {
   
   addSector: (name: string) => Promise<void>;
   deleteSector: (id: string) => Promise<void>;
+  
   addUser: (user: Omit<User, 'id'>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   changeUserSector: (sectorId: string) => Promise<void>;
   updateAnyUserSector: (userId: string, sectorId: string) => Promise<void>;
   updateAnyUserRole: (userId: string, role: UserRole) => Promise<void>;
+
+  addDentist: (dentist: Omit<Dentist, 'id'>) => Promise<void>;
+  deleteDentist: (id: string) => Promise<void>;
+  addJobType: (name: string) => Promise<void>;
+  deleteJobType: (id: string) => Promise<void>;
+  addBoxColor: (name: string, hex: string) => Promise<void>;
+  deleteBoxColor: (id: string) => Promise<void>;
 
   scanModalState: ScanModalState;
   closeScanModal: () => void;
@@ -84,6 +104,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [users, setUsers] = useState<User[]>([]);
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [jobTypes, setJobTypes] = useState<JobType[]>([]);
+  const [boxColors, setBoxColors] = useState<BoxColor[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
 
   const [scanModalState, setScanModalState] = useState<ScanModalState>({
@@ -99,9 +123,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const unsubscribeAuth = monitorAuthState((user) => {
       setCurrentUser(user);
-      // Reset sector confirmation on logout or user switch
       if (!user) setIsSectorConfirmed(false);
-      // Admins and Managers are auto-confirmed (Global Access)
       if (user && (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER)) {
         setIsSectorConfirmed(true);
       }
@@ -114,29 +136,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let unsubJobs: () => void;
     let unsubSectors: () => void;
     let unsubUsers: () => void;
+    let unsubDentists: () => void;
+    let unsubTypes: () => void;
+    let unsubColors: () => void;
 
     if (currentUser) {
-        // Check permission/role to decide if we should seed
         if (currentUser.role === UserRole.ADMIN) {
             seedDatabaseIfEmpty().catch(console.error);
         }
 
-        unsubJobs = subscribeToJobs((fetchedJobs) => {
-            setJobs(fetchedJobs);
-        });
+        unsubJobs = subscribeToJobs(setJobs);
+        unsubSectors = subscribeToSectors(setSectors);
         
-        unsubSectors = subscribeToSectors((fetchedSectors) => {
-            setSectors(fetchedSectors);
-        });
-        
-        unsubUsers = subscribeToUsers((fetchedUsers) => {
-            setUsers(fetchedUsers);
-            setIsLoading(false);
-        });
+        // ONLY subscribe to Users list if Admin or Manager (Avoids permission-denied errors)
+        if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) {
+            unsubUsers = subscribeToUsers(setUsers);
+        } else {
+            setUsers([]);
+        }
+
+        unsubDentists = subscribeToDentists(setDentists);
+        unsubTypes = subscribeToJobTypes(setJobTypes);
+        unsubColors = subscribeToBoxColors(setBoxColors);
+
+        setIsLoading(false);
+
     } else {
         setJobs([]);
         setSectors([]);
         setUsers([]);
+        setDentists([]);
+        setJobTypes([]);
+        setBoxColors([]);
         setIsLoading(false);
     }
 
@@ -144,8 +175,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if(unsubJobs) unsubJobs();
         if(unsubSectors) unsubSectors();
         if(unsubUsers) unsubUsers();
+        if(unsubDentists) unsubDentists();
+        if(unsubTypes) unsubTypes();
+        if(unsubColors) unsubColors();
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.role]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -165,6 +199,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await logoutUser();
       setCurrentUser(null);
       setIsSectorConfirmed(false);
+      localStorage.removeItem('protrack_temp_sector');
   };
 
   // --- Actions Wrappers ---
@@ -188,6 +223,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (updates.deliveryDate && updates.deliveryDate !== oldJob.deliveryDate) changes.push(`Entrega alterada para: ${new Date(updates.deliveryDate).toLocaleDateString()}`);
     if (updates.description && updates.description !== oldJob.description) changes.push(`Descrição técnica atualizada`);
     if (updates.isPromised !== undefined && updates.isPromised !== oldJob.isPromised) changes.push(updates.isPromised ? "Marcado como PROMETIDO (VIP)" : "Removido de PROMETIDO");
+    if (updates.boxNumber && updates.boxNumber !== oldJob.boxNumber) changes.push(`Caixa alterada para: ${updates.boxNumber}`);
 
     let newHistory = [...oldJob.history];
     
@@ -240,7 +276,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addSector = async (name: string) => {
     await addSectorToFirestore(name);
   };
-
   const deleteSector = async (id: string) => {
     await deleteSectorFromFirestore(id);
   };
@@ -248,7 +283,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addUser = async (newUser: Omit<User, 'id'>) => {
     await addUserToFirestore(newUser);
   };
-
   const deleteUser = async (id: string) => {
     if (currentUser?.id === id) {
       alert("Não é possível deletar o usuário logado atualmente.");
@@ -262,14 +296,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       try {
         await updateUserSector(currentUser.id, sectorId);
       } catch (e) {
-        console.warn("Não foi possível persistir o setor no banco (falta de permissão?), usando sessão local.", e);
+        // Silent fail for DB permission, fallback to local session
         localStorage.setItem('protrack_temp_sector', sectorId);
       }
       setCurrentUser({ ...currentUser, sectorId });
       setIsSectorConfirmed(true);
   };
   
-  // Check for local storage sector on mount
   useEffect(() => {
     if (currentUser && !isSectorConfirmed && !currentUser.sectorId) {
         const savedSector = localStorage.getItem('protrack_temp_sector');
@@ -288,6 +321,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await updateUserRole(userId, role);
   };
 
+  // --- Aux Actions ---
+  const addDentist = async (dentist: Omit<Dentist, 'id'>) => await addDentistToFirestore(dentist);
+  const deleteDentist = async (id: string) => await deleteDentistFromFirestore(id);
+
+  const addJobType = async (name: string) => await addJobTypeToFirestore(name);
+  const deleteJobType = async (id: string) => await deleteJobTypeFromFirestore(id);
+
+  const addBoxColor = async (name: string, hex: string) => await addBoxColorToFirestore(name, hex);
+  const deleteBoxColor = async (id: string) => await deleteBoxColorFromFirestore(id);
+
   // --- Core Logic ---
 
   const analyzeScan = (code: string): ScanAnalysis => {
@@ -300,9 +343,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return { action: 'INFO', message: "Trabalho já finalizado!", job };
     }
 
-    // Admins and Managers see info mode
     if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) {
-       return { action: 'INFO', message: "Visualização de Gestão (Admin/Gestor)", job };
+       return { action: 'INFO', message: "Visualização de Gestão", job };
     }
 
     const mySector = sectors.find(s => s.id === currentUser.sectorId);
@@ -326,7 +368,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (job.isFinished) return { success: false, message: "Trabalho já finalizado", type: 'INFO' };
 
-    // Admin/Manager just view
     if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) {
        return { success: true, message: "Visualização de Gestão", type: 'INFO', jobDetails: job };
     }
@@ -415,9 +456,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{ 
-      currentUser, users, sectors, jobs, isLoading, isSectorConfirmed,
+      currentUser, users, sectors, jobs, dentists, jobTypes, boxColors, isLoading, isSectorConfirmed,
       login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, getJobByCode, getJobById,
       addSector, deleteSector, addUser, deleteUser, changeUserSector, updateAnyUserSector, updateAnyUserRole,
+      addDentist, deleteDentist, addJobType, deleteJobType, addBoxColor, deleteBoxColor,
       scanModalState, closeScanModal, confirmScanModal
     }}>
       {children}

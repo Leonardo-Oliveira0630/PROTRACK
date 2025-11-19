@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ScanBarcode, Users, LogOut, PlusCircle, Hexagon, Layers, UserCog, Star, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Package, ScanBarcode, Users, LogOut, PlusCircle, Hexagon, Layers, UserCog, Star, CalendarDays, Stethoscope, FileText, Palette, Settings } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { UserRole } from '../types';
 
@@ -73,13 +73,32 @@ const Sidebar = () => {
         {isManagement && (
           <>
             <div className="mt-8 px-4 pb-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                Gestão
+                Gestão de Fluxo
             </div>
             <Link to="/create-job" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/create-job')}`}>
               <PlusCircle size={18} />
               <span>Entrada de Caso</span>
             </Link>
             
+            <div className="mt-4 px-4 pb-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                Cadastros
+            </div>
+
+            <Link to="/dentists" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/dentists')}`}>
+              <Stethoscope size={18} />
+              <span>Dentistas</span>
+            </Link>
+            
+            <Link to="/job-types" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/job-types')}`}>
+              <FileText size={18} />
+              <span>Tipos de Trabalho</span>
+            </Link>
+
+            <Link to="/box-colors" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/box-colors')}`}>
+              <Palette size={18} />
+              <span>Cores de Caixa</span>
+            </Link>
+
             <Link to="/sectors" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/sectors')}`}>
               <Layers size={18} />
               <span>Setores</span>
@@ -91,7 +110,7 @@ const Sidebar = () => {
 
             {currentUser?.role === UserRole.ADMIN && (
                 <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-r-xl transition-all duration-200 font-medium text-sm ${isActive('/admin')}`}>
-                <Users size={18} />
+                <Settings size={18} />
                 <span>Configurações</span>
                 </Link>
             )}

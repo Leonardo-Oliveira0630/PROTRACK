@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown } from 'lucide-react';
+import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown, Box } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { JobStatus, UrgencyLevel } from '../types';
@@ -45,21 +45,16 @@ const JobsList = () => {
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
-
-    // Header
-    doc.setFillColor(15, 23, 42); // Slate 900
+    doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, 210, 40, 'F');
-    
     doc.setFontSize(22);
     doc.setTextColor(255, 255, 255);
     doc.text("Relatório de Produção", 14, 20);
-    
     doc.setFontSize(10);
-    doc.setTextColor(148, 163, 184); // Slate 400
+    doc.setTextColor(148, 163, 184);
     doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 28);
     doc.text(`Solicitado por: ${currentUser?.name || 'Usuário'}`, 14, 34);
 
-    // Table Data
     const tableColumn = ["OS/Cod", "Paciente", "Dentista", "Trabalho", "Setor Atual", "Status", "Entrega"];
     const tableRows = filteredJobs.map(job => [
         job.code,
@@ -71,23 +66,20 @@ const JobsList = () => {
         new Date(job.deliveryDate).toLocaleDateString()
     ]);
 
-    // Generate Table
     autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 45,
         theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' }, // Blue 600
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 3 },
-        alternateRowStyles: { fillColor: [241, 245, 249] }, // Slate 100
+        alternateRowStyles: { fillColor: [241, 245, 249] },
     });
 
-    // Footer Stats
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text(`Total de registros listados: ${filteredJobs.length}`, 14, finalY);
-
     doc.save('relatorio-producao-protrack.pdf');
   };
 
@@ -107,9 +99,7 @@ const JobsList = () => {
         </button>
       </div>
 
-      {/* Filters Area */}
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4">
-        
         <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input 
@@ -120,9 +110,7 @@ const JobsList = () => {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
             />
         </div>
-
         <div className="flex flex-wrap gap-3">
-            
             <div className="relative min-w-[180px]">
                 <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <select 
@@ -138,7 +126,6 @@ const JobsList = () => {
                 </select>
                 <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={12} />
             </div>
-
             <select 
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -147,7 +134,6 @@ const JobsList = () => {
                 <option value="ALL">Todos Status</option>
                 {Object.values(JobStatus).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-
             <select 
                 value={filterUrgency}
                 onChange={(e) => setFilterUrgency(e.target.value)}
@@ -159,7 +145,6 @@ const JobsList = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -186,7 +171,17 @@ const JobsList = () => {
                                         {job.code.slice(-3)}
                                     </div>
                                     <div>
-                                        <div className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{job.patientName}</div>
+                                        <div className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors flex items-center gap-2">
+                                            {job.patientName}
+                                            {job.boxNumber && (
+                                                <span 
+                                                    className="text-[10px] px-1.5 py-0.5 rounded-md border flex items-center gap-1 shadow-sm"
+                                                    style={{ backgroundColor: job.boxColor || '#f1f5f9', borderColor: 'rgba(0,0,0,0.1)', color: '#334155' }}
+                                                >
+                                                    <Box size={8} /> {job.boxNumber}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="text-xs text-slate-500 font-medium">
                                            {job.dentistName || 'Sem dentista'} • <span className="font-mono">#{job.code}</span>
                                         </div>

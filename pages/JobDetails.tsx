@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { JobStatus, UrgencyLevel } from '../types';
-import { ArrowLeft, Calendar, User, FileText, Activity, AlertCircle, CheckCircle2, MapPin, Clock, Edit, Save, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Calendar, User, FileText, Activity, AlertCircle, CheckCircle2, MapPin, Clock, Edit, Save, ArrowRight, Box } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 
 const JobDetails = () => {
@@ -62,6 +62,14 @@ const JobDetails = () => {
                     <div className="flex flex-col items-end gap-2">
                         <StatusBadge status={job.status} />
                         <StatusBadge urgency={job.urgency} />
+                        {job.boxNumber && (
+                            <div 
+                                className="px-2 py-1 rounded-lg border flex items-center gap-1.5 text-xs font-bold mt-2"
+                                style={{ backgroundColor: job.boxColor || '#f1f5f9', borderColor: 'rgba(0,0,0,0.1)', color: '#334155' }}
+                            >
+                                <Box size={12} /> Caixa {job.boxNumber}
+                            </div>
+                        )}
                     </div>
                 </div>
 

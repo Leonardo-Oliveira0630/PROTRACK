@@ -31,6 +31,25 @@ export interface User {
   sectorId?: string; 
 }
 
+export interface Dentist {
+  id: string;
+  name: string;
+  clinicName?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface JobType {
+  id: string;
+  name: string;
+}
+
+export interface BoxColor {
+  id: string;
+  name: string;
+  hex: string;
+}
+
 export interface JobHistory {
   id: string;
   timestamp: string; // ISO Date
@@ -56,5 +75,7 @@ export interface Job {
   history: JobHistory[];
   isFinished: boolean;
   isPromised?: boolean; 
-  reminderNote?: string; 
+  reminderNote?: string;
+  boxNumber?: string;
+  boxColor?: string; // Hex code
 }

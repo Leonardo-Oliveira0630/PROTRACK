@@ -23,13 +23,21 @@ const Login = () => {
       if (isRegistering) {
         await register(name, email, password);
       } else {
-        const success = await login(email, password);
-        if (!success) {
-            setError("Email ou senha incorretos.");
-        }
+        await login(email, password);
       }
     } catch (err: any) {
-        setError(err.message || "Ocorreu um erro. Tente novamente.");
+        console.error("Login error:", err);
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+            setError("Email ou senha incorretos.");
+        } else if (err.code === 'auth/email-already-in-use') {
+            setError("Este email já está cadastrado.");
+        } else if (err.code === 'auth/weak-password') {
+            setError("A senha deve ter pelo menos 6 caracteres.");
+        } else if (err.code === 'permission-denied') {
+             setError("Permissão negada. Contate o administrador.");
+        } else {
+            setError("Ocorreu um erro. Tente novamente.");
+        }
     } finally {
         setIsLoading(false);
     }
