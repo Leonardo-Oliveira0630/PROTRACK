@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Search, Filter, ChevronRight, Layers, CheckCircle, History } from 'lucide-react';
+import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { JobStatus, UrgencyLevel } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const JobsList = () => {
-  const { jobs, sectors, finishJob } = useApp();
+  const { jobs, sectors, finishJob, currentUser } = useApp();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -41,6 +43,54 @@ const JobsList = () => {
       finishJob(jobId);
   };
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFillColor(15, 23, 42); // Slate 900
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text("Relatório de Produção", 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(148, 163, 184); // Slate 400
+    doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 28);
+    doc.text(`Solicitado por: ${currentUser?.name || 'Usuário'}`, 14, 34);
+
+    // Table Data
+    const tableColumn = ["OS/Cod", "Paciente", "Dentista", "Trabalho", "Setor Atual", "Status", "Entrega"];
+    const tableRows = filteredJobs.map(job => [
+        job.code,
+        job.patientName,
+        job.dentistName || '-',
+        job.prosthesisType,
+        getSectorName(job.currentSectorId),
+        job.status,
+        new Date(job.deliveryDate).toLocaleDateString()
+    ]);
+
+    // Generate Table
+    autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 45,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' }, // Blue 600
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [241, 245, 249] }, // Slate 100
+    });
+
+    // Footer Stats
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total de registros listados: ${filteredJobs.length}`, 14, finalY);
+
+    doc.save('relatorio-producao-protrack.pdf');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -48,6 +98,13 @@ const JobsList = () => {
             <h2 className="text-2xl font-bold text-slate-900">Lista de Casos</h2>
             <p className="text-slate-500 text-sm">Gerencie todos os trabalhos do laboratório</p>
         </div>
+        <button 
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-colors font-bold text-sm shadow-lg shadow-slate-900/10"
+        >
+            <FileDown size={18} />
+            Exportar Relatório PDF
+        </button>
       </div>
 
       {/* Filters Area */}
