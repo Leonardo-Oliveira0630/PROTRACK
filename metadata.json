@@ -1,0 +1,7 @@
+{
+  "name": "ProTrack - Controle de Produção",
+  "description": "Sistema de rastreamento de produção por setor com leitura de código de barras e análise inteligente.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
