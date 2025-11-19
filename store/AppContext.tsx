@@ -15,7 +15,8 @@ import {
     loginUser,
     registerNewUser,
     logoutUser,
-    monitorAuthState
+    monitorAuthState,
+    updateUserSector
 } from '../services/firebaseService';
 
 interface ScanResult {
@@ -44,6 +45,7 @@ interface AppState {
   sectors: Sector[];
   jobs: Job[];
   isLoading: boolean;
+  isSectorConfirmed: boolean; // New: Track if user selected sector this session
   
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -63,6 +65,7 @@ interface AppState {
   deleteSector: (id: string) => Promise<void>;
   addUser: (user: Omit<User, 'id'>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
+  changeUserSector: (sectorId: string) => Promise<void>; // New: Function to change sector
 
   scanModalState: ScanModalState;
   closeScanModal: () => void;
@@ -73,6 +76,7 @@ const AppContext = createContext<AppState | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSectorConfirmed, setIsSectorConfirmed] = useState(false);
   
   const [users, setUsers] = useState<User[]>([]);
   const [sectors, setSectors] = useState<Sector[]>([]);
@@ -92,6 +96,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const unsubscribeAuth = monitorAuthState((user) => {
       setCurrentUser(user);
+      // Reset sector confirmation on logout or user switch
+      if (!user) setIsSectorConfirmed(false);
+      // Admins are auto-confirmed
+      if (user && user.role === UserRole.ADMIN) setIsSectorConfirmed(true);
     });
     return () => unsubscribeAuth();
   }, []);
@@ -152,6 +160,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const logout = async () => {
       await logoutUser();
       setCurrentUser(null);
+      setIsSectorConfirmed(false);
   };
 
   // --- Actions Wrappers ---
@@ -245,6 +254,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
     await deleteUserFromFirestore(id);
+  };
+
+  const changeUserSector = async (sectorId: string) => {
+      if (!currentUser) return;
+      
+      try {
+        // Tentamos salvar no banco (Firebase)
+        await updateUserSector(currentUser.id, sectorId);
+      } catch (e) {
+        // Se falhar (por permissão ou rede), ignoramos o erro no banco 
+        // e permitimos que o usuário continue usando a sessão local.
+        console.warn("Não foi possível persistir o setor no banco (falta de permissão?), usando sessão local.", e);
+      }
+
+      // Atualizamos o estado local IMEDIATAMENTE para liberar o acesso
+      setCurrentUser({ ...currentUser, sectorId });
+      setIsSectorConfirmed(true);
   };
 
   // --- Core Logic ---
@@ -372,9 +398,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{ 
-      currentUser, users, sectors, jobs, isLoading,
+      currentUser, users, sectors, jobs, isLoading, isSectorConfirmed,
       login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, getJobByCode, getJobById,
-      addSector, deleteSector, addUser, deleteUser,
+      addSector, deleteSector, addUser, deleteUser, changeUserSector,
       scanModalState, closeScanModal, confirmScanModal
     }}>
       {children}

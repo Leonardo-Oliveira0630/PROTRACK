@@ -173,6 +173,11 @@ export const addUserToFirestore = async (user: Omit<User, 'id'>) => {
     await addDoc(collection(db, USERS_COL), user);
 };
 
+export const updateUserSector = async (userId: string, sectorId: string) => {
+    const ref = doc(db, USERS_COL, userId);
+    await updateDoc(ref, { sectorId });
+};
+
 export const deleteUserFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, USERS_COL, id));
 };

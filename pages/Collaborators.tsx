@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { UserCog, Plus, Trash2, User, Shield, Briefcase, Mail } from 'lucide-react';
+import { UserCog, Plus, Trash2, User, Shield, Briefcase, Mail, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { UserRole } from '../types';
 
@@ -18,17 +19,18 @@ const Collaborators = () => {
     e.preventDefault();
     if (!formData.name || !formData.email) return;
     
-    // If Collaborator, requires sector
-    if (formData.role === UserRole.COLLABORATOR && !formData.sectorId) {
-        alert("Por favor, selecione um setor para o colaborador.");
-        return;
+    // Se for Colaborador, sugerimos fortemente um setor, mas não bloqueamos 100% se for intencional
+    if (formData.role === UserRole.COLLABORATOR && !formData.sectorId && sectors.length > 0) {
+        if(!window.confirm("Este colaborador não tem um setor vinculado. Deseja continuar?")) {
+            return;
+        }
     }
 
     addUser({
         name: formData.name,
         email: formData.email,
         role: formData.role,
-        sectorId: formData.role === UserRole.COLLABORATOR ? formData.sectorId : undefined
+        sectorId: formData.sectorId || undefined
     });
 
     setFormData({ name: '', email: '', role: UserRole.COLLABORATOR, sectorId: '' });
@@ -93,14 +95,20 @@ const Collaborators = () => {
                 </select>
             </div>
             <div className="md:col-span-1">
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
+                <label className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-1">
+                    Setor
+                    {sectors.length === 0 && (
+                        <Link to="/sectors" className="text-blue-500 hover:underline font-normal lowercase flex items-center gap-1">
+                            <Plus size={10} /> criar setores
+                        </Link>
+                    )}
+                </label>
                 <select 
                     value={formData.sectorId}
                     onChange={(e) => setFormData({...formData, sectorId: e.target.value})}
-                    disabled={formData.role === UserRole.ADMIN}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white"
                 >
-                    <option value="">Selecione...</option>
+                    <option value="">{formData.role === UserRole.ADMIN ? 'Acesso Global (Opcional)' : 'Selecione um Setor...'}</option>
                     {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
             </div>
@@ -159,7 +167,7 @@ const Collaborators = () => {
                                 </div>
                             </td>
                             <td className="p-4 text-sm text-slate-600">
-                                {user.role === UserRole.ADMIN 
+                                {user.role === UserRole.ADMIN && !user.sectorId
                                     ? <span className="text-slate-400 italic">Acesso Global</span> 
                                     : <span className="font-medium">{getSectorName(user.sectorId)}</span>
                                 }
@@ -175,6 +183,16 @@ const Collaborators = () => {
                             </td>
                         </tr>
                     ))}
+                    {users.length === 0 && (
+                        <tr>
+                            <td colSpan={4} className="p-8 text-center text-slate-400">
+                                <div className="flex flex-col items-center gap-2">
+                                    <AlertCircle size={24} />
+                                    <p>Nenhum colaborador cadastrado.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>
