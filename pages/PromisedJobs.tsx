@@ -61,7 +61,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, sectorName, isEditing, tempNote,
 
                     <p className="text-sm text-slate-600 font-medium">{job.prosthesisType}</p>
                     
-                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <div className="flex items-center gap-1 px-2 py-1 rounded bg-slate-50 border border-slate-100">
                              <div className={`w-2 h-2 rounded-full ${job.currentSectorId ? 'bg-green-500' : 'bg-amber-400 animate-pulse'}`}></div>
                              <span className="font-semibold">{sectorName}</span>
@@ -71,11 +71,13 @@ const JobCard: React.FC<JobCardProps> = ({ job, sectorName, isEditing, tempNote,
                 </div>
 
                 {/* Right Info & Actions */}
-                <div className="flex flex-col items-end justify-between gap-4">
-                    <div className="text-right">
-                        <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Entrega</div>
-                        <div className={`font-bold ${isLate ? 'text-red-600' : 'text-slate-800'}`}>
-                            {new Date(job.deliveryDate).toLocaleDateString()}
+                <div className="flex flex-col md:items-end justify-between gap-4 mt-4 md:mt-0 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
+                    <div className="flex md:flex-col justify-between items-end">
+                        <div className="text-left md:text-right">
+                            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Entrega</div>
+                            <div className={`font-bold ${isLate ? 'text-red-600' : 'text-slate-800'}`}>
+                                {new Date(job.deliveryDate).toLocaleDateString()}
+                            </div>
                         </div>
                     </div>
 
@@ -86,7 +88,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, sectorName, isEditing, tempNote,
                                 e.stopPropagation();
                                 onFinish(job.id);
                             }}
-                            className="p-2 bg-slate-100 text-slate-400 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors h-[40px]"
+                            className="p-2 bg-slate-100 text-slate-400 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors h-[40px] shrink-0"
                             title="Finalizar Agora"
                         >
                             <CheckCircle size={20} />
@@ -111,7 +113,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, sectorName, isEditing, tempNote,
                                 </div>
                             ) : (
                                 <div onClick={() => onEdit(job)} className="cursor-pointer min-h-[40px] flex gap-2 items-start">
-                                    <Bell size={14} className={`mt-0.5 ${job.reminderNote ? 'text-yellow-600 fill-yellow-600' : 'text-slate-300'}`} />
+                                    <Bell size={14} className={`mt-0.5 shrink-0 ${job.reminderNote ? 'text-yellow-600 fill-yellow-600' : 'text-slate-300'}`} />
                                     {job.reminderNote ? (
                                         <p className="text-xs text-slate-700 leading-relaxed italic">{job.reminderNote}</p>
                                     ) : (

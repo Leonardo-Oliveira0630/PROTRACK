@@ -85,14 +85,14 @@ const JobsList = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
             <h2 className="text-2xl font-bold text-slate-900">Lista de Casos</h2>
             <p className="text-slate-500 text-sm">Gerencie todos os trabalhos do laboratório</p>
         </div>
         <button 
             onClick={handleExportPDF}
-            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-colors font-bold text-sm shadow-lg shadow-slate-900/10"
+            className="flex items-center justify-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-800 transition-colors font-bold text-sm shadow-lg shadow-slate-900/10 w-full lg:w-auto"
         >
             <FileDown size={18} />
             Exportar Relatório PDF
@@ -110,7 +110,7 @@ const JobsList = () => {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
             />
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative min-w-[180px]">
                 <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <select 
@@ -147,7 +147,7 @@ const JobsList = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200">
                         <th className="p-5 font-bold text-slate-600 text-xs uppercase tracking-wider">Caso / Dentista</th>

@@ -79,7 +79,7 @@ const JobDetails = () => {
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
             <ArrowLeft size={20} />
         </button>
-        <h2 className="text-2xl font-bold text-slate-900">Detalhes do Caso #{job.code}</h2>
+        <h2 className="text-lg md:text-2xl font-bold text-slate-900 truncate">Detalhes do Caso #{job.code}</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -94,15 +94,15 @@ const JobDetails = () => {
                     {isEditing ? (
                         <>
                             <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition-colors shadow-md">
-                                <Save size={14} /> Salvar Alterações
+                                <Save size={14} /> <span className="hidden sm:inline">Salvar</span>
                             </button>
                             <button onClick={() => setIsEditing(false)} className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors">
-                                <X size={14} /> Cancelar
+                                <X size={14} /> <span className="hidden sm:inline">Cancelar</span>
                             </button>
                         </>
                     ) : (
                         <button onClick={handleEditToggle} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
-                            <Edit size={14} /> Editar Caso
+                            <Edit size={14} /> <span className="hidden sm:inline">Editar Caso</span>
                         </button>
                     )}
                 </div>
@@ -118,7 +118,7 @@ const JobDetails = () => {
                                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dentista</label>
                                 <select 
@@ -142,7 +142,7 @@ const JobDetails = () => {
                                 </select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Urgência</label>
                                 <select 
@@ -164,7 +164,7 @@ const JobDetails = () => {
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
                              <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nº Caixa</label>
                                 <input 
@@ -215,15 +215,15 @@ const JobDetails = () => {
                     </div>
                 ) : (
                     <>
-                        <div className="flex justify-between items-start mb-6">
-                            <div>
+                        <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4">
+                            <div className="pr-20 sm:pr-0">
                                 <h3 className="text-xl font-bold text-slate-900">{job.patientName}</h3>
                                 <div className="flex items-center gap-2 text-slate-500 mt-1">
                                     <User size={14} />
                                     <span className="text-sm font-medium">{job.dentistName || 'Sem dentista vinculado'}</span>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
+                            <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2">
                                 <StatusBadge status={job.status} />
                                 <StatusBadge urgency={job.urgency} />
                                 {job.boxNumber && (
@@ -247,7 +247,7 @@ const JobDetails = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-2">
                                     <FileText size={14} /> Tipo de Prótese
@@ -277,7 +277,7 @@ const JobDetails = () => {
                     <div className="border-t border-slate-100 pt-6 mt-6 flex justify-end">
                         <button 
                             onClick={() => finishJob(job.id)}
-                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-green-900/20"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-green-900/20"
                         >
                             <CheckCircle2 size={20} />
                             Finalizar Trabalho

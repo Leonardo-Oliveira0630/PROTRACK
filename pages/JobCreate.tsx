@@ -73,7 +73,7 @@ const JobCreate = () => {
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Main Form Area */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-8 order-2 lg:order-1">
             {/* Section 1: Patient/Client Info */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
@@ -224,7 +224,7 @@ const JobCreate = () => {
         </div>
 
         {/* Sidebar Options */}
-        <div className="space-y-6">
+        <div className="space-y-6 order-1 lg:order-2">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                     <Calendar className="text-green-500" size={20} />

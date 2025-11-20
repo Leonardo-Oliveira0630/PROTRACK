@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Sparkles, AlertCircle, Clock, CheckCircle, Activity } from 'lucide-react';
@@ -49,13 +50,13 @@ const Dashboard = () => {
       
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-2xl font-bold text-slate-900">Painel de Controle</h2>
-        <span className="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+        <span className="text-xs md:text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 hidden md:inline-block">
             Atualizado em tempo real
         </span>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Activity size={20} /></div>
@@ -148,7 +149,7 @@ const Dashboard = () => {
                     <p className="text-xs text-slate-400 uppercase font-bold">Total</p>
                 </div>
             </div>
-            <div className="flex justify-center gap-4 mt-4">
+            <div className="flex justify-center gap-4 mt-4 flex-wrap">
                 {urgencyData.map((entry, index) => (
                     <div key={entry.name} className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{backgroundColor: COLORS[index]}}></div>
@@ -175,7 +176,7 @@ const Dashboard = () => {
                 <button 
                     onClick={handleGenerateInsights}
                     disabled={loadingInsights}
-                    className="px-6 py-3 bg-white text-indigo-700 hover:bg-indigo-50 rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-3 bg-white text-indigo-700 hover:bg-indigo-50 rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-900/20 disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
                 >
                     {loadingInsights ? 'Analisando Fluxo...' : 'Gerar Relatório Inteligente'}
                 </button>

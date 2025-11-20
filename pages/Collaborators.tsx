@@ -130,7 +130,7 @@ const Collaborators = () => {
             <h3 className="font-bold text-slate-800">Quadro de Colaboradores</h3>
         </div>
         <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold">
                         <th className="p-4 pl-6">Usuário / Email</th>

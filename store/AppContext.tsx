@@ -60,6 +60,11 @@ interface AppState {
   isLoading: boolean;
   isSectorConfirmed: boolean;
   
+  // Mobile Menu State
+  isMobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
+  setMobileMenuOpen: (isOpen: boolean) => void;
+
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -100,6 +105,7 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isSectorConfirmed, setIsSectorConfirmed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [users, setUsers] = useState<User[]>([]);
   const [sectors, setSectors] = useState<Sector[]>([]);
@@ -181,6 +187,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, [currentUser?.id, currentUser?.role]);
 
+  const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
+  const setMobileMenuOpen = (isOpen: boolean) => setIsMobileMenuOpen(isOpen);
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
         await loginUser(email, password);
@@ -199,6 +208,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await logoutUser();
       setCurrentUser(null);
       setIsSectorConfirmed(false);
+      setIsMobileMenuOpen(false);
       localStorage.removeItem('protrack_temp_sector');
   };
 
@@ -296,7 +306,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       try {
         await updateUserSector(currentUser.id, sectorId);
       } catch (e) {
-        // Silent fail for DB permission, fallback to local session
         localStorage.setItem('protrack_temp_sector', sectorId);
       }
       setCurrentUser({ ...currentUser, sectorId });
@@ -321,7 +330,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await updateUserRole(userId, role);
   };
 
-  // --- Aux Actions (With Local Fallback for Permissions) ---
+  // --- Aux Actions ---
 
   const addDentist = async (dentist: Omit<Dentist, 'id'>) => {
       try {
@@ -501,6 +510,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider value={{ 
       currentUser, users, sectors, jobs, dentists, jobTypes, boxColors, isLoading, isSectorConfirmed,
+      isMobileMenuOpen, toggleMobileMenu, setMobileMenuOpen,
       login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, getJobByCode, getJobById,
       addSector, deleteSector, addUser, deleteUser, changeUserSector, updateAnyUserSector, updateAnyUserRole,
       addDentist, deleteDentist, addJobType, deleteJobType, addBoxColor, deleteBoxColor,

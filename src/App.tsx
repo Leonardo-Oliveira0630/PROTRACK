@@ -17,13 +17,37 @@ import GlobalScanModal from './components/GlobalScanModal';
 import ProductionCalendar from './pages/ProductionCalendar';
 import JobDetails from './pages/JobDetails';
 import SectorSelection from './pages/SectorSelection';
+import Dentists from './pages/Dentists';
+import JobTypes from './pages/JobTypes';
+import BoxColors from './pages/BoxColors';
+import { Menu, Hexagon } from 'lucide-react';
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
+  const { toggleMobileMenu } = useApp();
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8 overflow-y-auto h-screen">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 ml-0 md:ml-64 transition-all duration-300 h-screen overflow-y-auto flex flex-col">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between sticky top-0 z-40 shadow-md">
+            <div className="flex items-center gap-3">
+                <div className="relative">
+                    <Hexagon className="w-8 h-8 text-blue-500 fill-blue-500/20" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-blue-300">DL</span>
+                    </div>
+                </div>
+                <span className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-white">
+                    ProTrack
+                </span>
+            </div>
+            <button onClick={toggleMobileMenu} className="p-2 hover:bg-slate-800 rounded-lg text-slate-300">
+                <Menu size={24} />
+            </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
           {children}
         </div>
       </main>
@@ -74,8 +98,15 @@ const AppContent = () => {
                         <Route path="/calendar" element={<ProductionCalendar />} />
                         <Route path="/create-job" element={<JobCreate />} />
                         <Route path="/admin" element={<Admin />} />
+                        
                         <Route path="/sectors" element={<Sectors />} />
                         <Route path="/collaborators" element={<Collaborators />} />
+                        
+                        {/* New Routes */}
+                        <Route path="/dentists" element={<Dentists />} />
+                        <Route path="/job-types" element={<JobTypes />} />
+                        <Route path="/box-colors" element={<BoxColors />} />
+
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Layout>
