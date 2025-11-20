@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
@@ -31,10 +30,10 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
       <Sidebar />
 
       {/* Main Wrapper */}
-      <div className="flex-1 flex flex-col h-full w-full md:ml-64 transition-all duration-300 relative">
+      <div className="flex-1 flex flex-col h-full w-full lg:ml-64 transition-all duration-300 relative">
         
         {/* Mobile Header - Fixed at top */}
-        <header className="md:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between shrink-0 shadow-md z-40">
+        <header className="lg:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between shrink-0 shadow-md z-40">
             <div className="flex items-center gap-3">
                 <div className="relative">
                     <Hexagon className="w-8 h-8 text-blue-500 fill-blue-500/20" />
@@ -56,8 +55,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         </header>
 
         {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 w-full scroll-smooth">
-          <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 w-full scroll-smooth">
+          <div className="max-w-7xl mx-auto w-full pb-20 lg:pb-0">
             {children}
           </div>
         </main>
