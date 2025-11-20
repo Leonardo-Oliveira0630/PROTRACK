@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown, Box } from 'lucide-react';
+import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown, Box, ScanBarcode } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { JobStatus, UrgencyLevel } from '../types';
@@ -9,7 +9,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const JobsList = () => {
-  const { jobs, sectors, finishJob, currentUser } = useApp();
+  const { jobs, sectors, finishJob, currentUser, triggerManualScan } = useApp();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -41,6 +41,11 @@ const JobsList = () => {
   const handleFinish = (e: React.MouseEvent, jobId: string) => {
       e.stopPropagation();
       finishJob(jobId);
+  };
+
+  const handleManualScan = (e: React.MouseEvent, code: string) => {
+      e.stopPropagation();
+      triggerManualScan(code);
   };
 
   const handleExportPDF = () => {
@@ -155,7 +160,7 @@ const JobsList = () => {
                         <th className="p-5 font-bold text-slate-600 text-xs uppercase tracking-wider">Localização Atual</th>
                         <th className="p-5 font-bold text-slate-600 text-xs uppercase tracking-wider">Status</th>
                         <th className="p-5 font-bold text-slate-600 text-xs uppercase tracking-wider">Entrega</th>
-                        <th className="p-5 font-bold text-slate-600 text-xs uppercase tracking-wider w-20 text-right">Ações</th>
+                        <th className="p-5 font-bold text-slate-600 text-xs uppercase tracking-wider w-24 text-right">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -225,13 +230,22 @@ const JobsList = () => {
                             <td className="p-5">
                                 <div className="flex items-center justify-end gap-2">
                                     {!job.isFinished && (
-                                        <button 
-                                            onClick={(e) => handleFinish(e, job.id)}
-                                            className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                            title="Finalizar Trabalho"
-                                        >
-                                            <CheckCircle size={18} />
-                                        </button>
+                                        <>
+                                            <button 
+                                                onClick={(e) => handleManualScan(e, job.code)}
+                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                title="Movimentar Manualmente (Scan)"
+                                            >
+                                                <ScanBarcode size={18} />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => handleFinish(e, job.id)}
+                                                className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                title="Finalizar Trabalho"
+                                            >
+                                                <CheckCircle size={18} />
+                                            </button>
+                                        </>
                                     )}
                                     <div className="p-2 text-slate-300 group-hover:text-blue-500 transition-colors">
                                         <History size={18} />

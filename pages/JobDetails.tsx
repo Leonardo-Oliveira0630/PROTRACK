@@ -3,13 +3,13 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { UrgencyLevel } from '../types';
-import { ArrowLeft, Calendar, User, FileText, Activity, AlertCircle, CheckCircle2, MapPin, Clock, Edit, Save, ArrowRight, Box, Star, X } from 'lucide-react';
+import { ArrowLeft, Calendar, User, FileText, Activity, AlertCircle, CheckCircle2, MapPin, Clock, Edit, Save, ArrowRight, Box, Star, X, ScanBarcode } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 
 const JobDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getJobById, updateJob, finishJob, currentUser, dentists, jobTypes, boxColors } = useApp();
+  const { getJobById, updateJob, finishJob, currentUser, dentists, jobTypes, boxColors, triggerManualScan } = useApp();
   
   const job = getJobById(id || '');
   
@@ -274,7 +274,14 @@ const JobDetails = () => {
                 )}
 
                 {!job.isFinished && !isEditing && (
-                    <div className="border-t border-slate-100 pt-6 mt-6 flex justify-end">
+                    <div className="border-t border-slate-100 pt-6 mt-6 flex flex-col sm:flex-row justify-end gap-3">
+                        <button 
+                            onClick={() => triggerManualScan(job.code)}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-blue-900/20"
+                        >
+                            <ScanBarcode size={20} />
+                            Movimentar (Scanner Manual)
+                        </button>
                         <button 
                             onClick={() => finishJob(job.id)}
                             className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-green-900/20"

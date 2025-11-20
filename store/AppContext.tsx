@@ -76,6 +76,7 @@ interface AppState {
   
   scanJob: (code: string) => Promise<ScanResult>;
   analyzeScan: (code: string) => ScanAnalysis; 
+  triggerManualScan: (code: string) => void; // NEW FUNCTION
   getJobByCode: (code: string) => Job | undefined;
   getJobById: (id: string) => Job | undefined;
   
@@ -413,6 +414,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  // New function to trigger scan manually via button
+  const triggerManualScan = (code: string) => {
+    const analysis = analyzeScan(code);
+    setScanModalState({
+        isOpen: true,
+        code,
+        analysis
+    });
+  };
+
   const scanJob = async (code: string): Promise<ScanResult> => {
     if (!currentUser) return { success: false, message: "Usuário não logado", type: 'ERROR' };
     
@@ -511,7 +522,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider value={{ 
       currentUser, users, sectors, jobs, dentists, jobTypes, boxColors, isLoading, isSectorConfirmed,
       isMobileMenuOpen, toggleMobileMenu, setMobileMenuOpen,
-      login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, getJobByCode, getJobById,
+      login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, triggerManualScan, getJobByCode, getJobById,
       addSector, deleteSector, addUser, deleteUser, changeUserSector, updateAnyUserSector, updateAnyUserRole,
       addDentist, deleteDentist, addJobType, deleteJobType, addBoxColor, deleteBoxColor,
       scanModalState, closeScanModal, confirmScanModal
