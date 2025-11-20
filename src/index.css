@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Scrollbar Styles */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }

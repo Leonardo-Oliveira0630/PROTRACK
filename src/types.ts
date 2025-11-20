@@ -56,7 +56,7 @@ export interface JobHistory {
   sectorName: string;
   userId: string;
   userName: string;
-  changes?: string[]; // Array describing what changed (e.g. "Changed Urgency from Low to High")
+  changes?: string[];
 }
 
 export interface Job {
@@ -76,5 +76,5 @@ export interface Job {
   isPromised?: boolean; 
   reminderNote?: string;
   boxNumber?: string;
-  boxColor?: string; // Hex code
+  boxColor?: string;
 }
