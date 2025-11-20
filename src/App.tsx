@@ -24,12 +24,17 @@ import { Menu, Hexagon } from 'lucide-react';
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const { toggleMobileMenu } = useApp();
+  
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
+      {/* Sidebar (Fixed on Desktop, Drawer on Mobile) */}
       <Sidebar />
-      <main className="flex-1 ml-0 md:ml-64 transition-all duration-300 h-screen overflow-y-auto flex flex-col">
-        {/* Mobile Header */}
-        <div className="md:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between sticky top-0 z-40 shadow-md">
+
+      {/* Main Wrapper */}
+      <div className="flex-1 flex flex-col h-full w-full md:ml-64 transition-all duration-300 relative">
+        
+        {/* Mobile Header - Fixed at top */}
+        <header className="md:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between shrink-0 shadow-md z-40">
             <div className="flex items-center gap-3">
                 <div className="relative">
                     <Hexagon className="w-8 h-8 text-blue-500 fill-blue-500/20" />
@@ -41,16 +46,23 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
                     ProTrack
                 </span>
             </div>
-            <button onClick={toggleMobileMenu} className="p-2 hover:bg-slate-800 rounded-lg text-slate-300">
+            <button 
+                onClick={toggleMobileMenu} 
+                className="p-2 hover:bg-slate-800 rounded-lg text-slate-300 active:bg-slate-700 transition-colors"
+                aria-label="Abrir menu"
+            >
                 <Menu size={24} />
             </button>
-        </div>
+        </header>
 
-        {/* Content */}
-        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-          {children}
-        </div>
-      </main>
+        {/* Scrollable Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 w-full scroll-smooth">
+          <div className="max-w-7xl mx-auto w-full pb-20 md:pb-0">
+            {children}
+          </div>
+        </main>
+      </div>
+
       <GlobalScanModal />
     </div>
   );

@@ -16,27 +16,29 @@ const Sidebar = () => {
   const isManagement = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER;
 
   const handleLinkClick = () => {
-    // Auto-close menu on mobile when clicking a link
+    // Auto-close menu on mobile/tablet when clicking a link
     setMobileMenuOpen(false);
   };
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-            className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
-        ></div>
-      )}
+      {/* Mobile/Tablet Overlay - Darkens background when menu is open */}
+      <div 
+        className={`fixed inset-0 bg-black/60 z-[45] lg:hidden backdrop-blur-sm transition-opacity duration-300 ${
+            isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
 
       {/* Sidebar Container */}
-      <div className={`h-screen w-64 bg-[#0f172a] flex flex-col fixed left-0 top-0 z-50 shadow-2xl transition-transform duration-300 ease-in-out border-r border-slate-800/50 ${
+      {/* Changed breakpoint to lg (1024px) so tablets see the mobile menu */}
+      {/* Removed md:static to keep it fixed always for better scrolling behavior */}
+      <div className={`fixed inset-y-0 left-0 z-[50] w-64 bg-[#0f172a] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out border-r border-slate-800/50 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:translate-x-0`}>
+      } lg:translate-x-0`}>
         
         {/* Header */}
-        <div className="p-8 border-b border-slate-800/50 bg-[#0f172a] flex justify-between items-start">
+        <div className="p-8 border-b border-slate-800/50 bg-[#0f172a] flex justify-between items-start shrink-0">
             <div>
                 <h1 className="text-2xl font-bold text-white flex items-center gap-3 tracking-tight">
                 <div className="relative">
@@ -60,15 +62,17 @@ const Sidebar = () => {
                 </div>
             </div>
             
-            {/* Close Button (Mobile Only) */}
+            {/* Close Button (Mobile/Tablet Only) */}
             <button 
                 onClick={() => setMobileMenuOpen(false)}
-                className="md:hidden text-slate-400 hover:text-white p-1"
+                className="lg:hidden text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors"
+                aria-label="Fechar menu"
             >
                 <X size={24} />
             </button>
         </div>
 
+        {/* Navigation Links */}
         <nav className="flex-1 px-4 py-6 space-y-3 overflow-y-auto no-scrollbar">
             <div className="px-4 pb-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
                 Controle de Produção
@@ -146,7 +150,7 @@ const Sidebar = () => {
             )}
         </nav>
 
-        <div className="p-4 border-t border-slate-800/50 bg-[#0f172a]">
+        <div className="p-4 border-t border-slate-800/50 bg-[#0f172a] shrink-0 pb-8 md:pb-4">
             <button 
             onClick={logout}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-red-950/30 hover:text-red-400 w-full transition-colors font-medium text-sm"
