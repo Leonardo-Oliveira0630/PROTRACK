@@ -1,7 +1,6 @@
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
-import { UserRole } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Scanner from './pages/Scanner';
@@ -15,7 +14,6 @@ import PromisedJobs from './pages/PromisedJobs';
 import GlobalScanModal from './components/GlobalScanModal';
 import ProductionCalendar from './pages/ProductionCalendar';
 import JobDetails from './pages/JobDetails';
-import SectorSelection from './pages/SectorSelection';
 import Dentists from './pages/Dentists';
 import JobTypes from './pages/JobTypes';
 import BoxColors from './pages/BoxColors';
@@ -59,47 +57,35 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   );
 };
 
-const RequireSector = ({ children }: { children?: React.ReactNode }) => {
-    const { currentUser, isSectorConfirmed } = useApp();
-    if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER) {
-        return <>{children}</>;
-    }
-    if (!isSectorConfirmed) {
-        return <Navigate to="/select-sector" replace />;
-    }
-    return <>{children}</>;
-};
-
 const AppContent = () => {
   const { currentUser } = useApp();
+
   if (!currentUser) {
     return <Login />;
   }
+
   return (
     <HashRouter>
       <Routes>
-        <Route path="/select-sector" element={<SectorSelection />} />
         <Route path="/*" element={
-            <RequireSector>
-                <Layout>
-                    <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/scanner" element={<Scanner />} />
-                        <Route path="/jobs" element={<JobsList />} />
-                        <Route path="/jobs/:id" element={<JobDetails />} />
-                        <Route path="/promised" element={<PromisedJobs />} />
-                        <Route path="/calendar" element={<ProductionCalendar />} />
-                        <Route path="/create-job" element={<JobCreate />} />
-                        <Route path="/admin" element={<Admin />} />
-                        <Route path="/sectors" element={<Sectors />} />
-                        <Route path="/collaborators" element={<Collaborators />} />
-                        <Route path="/dentists" element={<Dentists />} />
-                        <Route path="/job-types" element={<JobTypes />} />
-                        <Route path="/box-colors" element={<BoxColors />} />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </Layout>
-            </RequireSector>
+            <Layout>
+                <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/scanner" element={<Scanner />} />
+                    <Route path="/jobs" element={<JobsList />} />
+                    <Route path="/jobs/:id" element={<JobDetails />} />
+                    <Route path="/promised" element={<PromisedJobs />} />
+                    <Route path="/calendar" element={<ProductionCalendar />} />
+                    <Route path="/create-job" element={<JobCreate />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/sectors" element={<Sectors />} />
+                    <Route path="/collaborators" element={<Collaborators />} />
+                    <Route path="/dentists" element={<Dentists />} />
+                    <Route path="/job-types" element={<JobTypes />} />
+                    <Route path="/box-colors" element={<BoxColors />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </Layout>
         } />
       </Routes>
     </HashRouter>

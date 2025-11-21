@@ -113,8 +113,25 @@ export const monitorAuthState = (onUserChanged: (user: User | null) => void) => 
                     const userData = docSnap.data() as User;
                     onUserChanged({ ...userData, id: firebaseUser.uid, email: firebaseUser.email || '' });
                 } else {
-                    console.log("User profile not found in Firestore yet.");
-                    onUserChanged(null);
+                    console.log("User profile not found in Firestore. Attempting Auto-Repair...");
+                    // AUTO-REPAIR: Create default profile if missing
+                    // This happens if registration partially failed or if admin pre-reg link failed
+                    const newUser: User = {
+                        id: firebaseUser.uid,
+                        name: firebaseUser.displayName || 'Colaborador',
+                        email: firebaseUser.email || '',
+                        role: UserRole.COLLABORATOR,
+                        sectorId: '' // Will force sector selection on next step
+                    };
+                    
+                    try {
+                        await setDoc(docRef, newUser);
+                        onUserChanged(newUser);
+                        console.log("Auto-Repair successful.");
+                    } catch (createErr) {
+                        console.error("Auto-Repair failed:", createErr);
+                        onUserChanged(null);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching user profile:", error);
@@ -143,6 +160,7 @@ export const registerNewUser = async (name: string, email: string, password: str
     let existingDocId = null;
 
     try {
+        // Try to find if admin pre-registered this email
         const q = query(collection(db, USERS_COL), where("email", "==", email));
         const querySnapshot = await getDocs(q);
         
@@ -162,7 +180,7 @@ export const registerNewUser = async (name: string, email: string, password: str
             }
         }
     } catch (error) {
-        console.log("Permission denied checking existing users.");
+        console.log("Permission denied checking existing users. Proceeding with default creation.");
     }
 
     const newUser: User = {
@@ -173,12 +191,16 @@ export const registerNewUser = async (name: string, email: string, password: str
         sectorId
     };
 
+    // Create the definitive user document linked to Auth UID
     await setDoc(doc(db, USERS_COL, uid), newUser);
 
+    // If there was a placeholder document from admin, delete it to clean up
     if (existingDocId && existingDocId !== uid) {
         try {
             await deleteDoc(doc(db, USERS_COL, existingDocId));
-        } catch (e) {}
+        } catch (e) {
+            // Ignore delete errors (permissions)
+        }
     }
     
     return newUser;

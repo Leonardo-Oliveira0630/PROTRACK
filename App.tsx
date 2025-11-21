@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
-import { UserRole } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Scanner from './pages/Scanner';
@@ -16,7 +14,6 @@ import PromisedJobs from './pages/PromisedJobs';
 import GlobalScanModal from './components/GlobalScanModal';
 import ProductionCalendar from './pages/ProductionCalendar';
 import JobDetails from './pages/JobDetails';
-import SectorSelection from './pages/SectorSelection';
 import Dentists from './pages/Dentists';
 import JobTypes from './pages/JobTypes';
 import BoxColors from './pages/BoxColors';
@@ -27,15 +24,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar (Fixed on Desktop, Drawer on Mobile/Tablet) */}
       <Sidebar />
-
-      {/* Main Wrapper */}
-      {/* Changed ml-64 to lg:ml-64 so tablets (md) don't have margin */}
       <div className="flex-1 flex flex-col h-full w-full lg:ml-64 transition-all duration-300 relative">
-        
-        {/* Mobile/Tablet Header - Fixed at top */}
-        {/* Changed md:hidden to lg:hidden so it shows on tablets */}
         <header className="lg:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between shrink-0 shadow-md z-40">
             <div className="flex items-center gap-3">
                 <div className="relative">
@@ -56,34 +46,15 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
                 <Menu size={24} />
             </button>
         </header>
-
-        {/* Scrollable Content Area */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 w-full scroll-smooth">
           <div className="max-w-7xl mx-auto w-full pb-20 lg:pb-0">
             {children}
           </div>
         </main>
       </div>
-
       <GlobalScanModal />
     </div>
   );
-};
-
-const RequireSector = ({ children }: { children?: React.ReactNode }) => {
-    const { currentUser, isSectorConfirmed } = useApp();
-
-    // If Admin or Manager, they skip sector selection (Global Access)
-    if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER) {
-        return <>{children}</>;
-    }
-
-    // If Collaborator hasn't confirmed sector yet, force selection page
-    if (!isSectorConfirmed) {
-        return <Navigate to="/select-sector" replace />;
-    }
-
-    return <>{children}</>;
 };
 
 const AppContent = () => {
@@ -96,35 +67,25 @@ const AppContent = () => {
   return (
     <HashRouter>
       <Routes>
-        {/* Special Route for Sector Selection (No Sidebar) */}
-        <Route path="/select-sector" element={<SectorSelection />} />
-
-        {/* Protected Routes (With Sidebar) */}
         <Route path="/*" element={
-            <RequireSector>
-                <Layout>
-                    <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/scanner" element={<Scanner />} />
-                        <Route path="/jobs" element={<JobsList />} />
-                        <Route path="/jobs/:id" element={<JobDetails />} />
-                        <Route path="/promised" element={<PromisedJobs />} />
-                        <Route path="/calendar" element={<ProductionCalendar />} />
-                        <Route path="/create-job" element={<JobCreate />} />
-                        <Route path="/admin" element={<Admin />} />
-                        
-                        <Route path="/sectors" element={<Sectors />} />
-                        <Route path="/collaborators" element={<Collaborators />} />
-                        
-                        {/* New Routes */}
-                        <Route path="/dentists" element={<Dentists />} />
-                        <Route path="/job-types" element={<JobTypes />} />
-                        <Route path="/box-colors" element={<BoxColors />} />
-
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </Layout>
-            </RequireSector>
+            <Layout>
+                <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/scanner" element={<Scanner />} />
+                    <Route path="/jobs" element={<JobsList />} />
+                    <Route path="/jobs/:id" element={<JobDetails />} />
+                    <Route path="/promised" element={<PromisedJobs />} />
+                    <Route path="/calendar" element={<ProductionCalendar />} />
+                    <Route path="/create-job" element={<JobCreate />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/sectors" element={<Sectors />} />
+                    <Route path="/collaborators" element={<Collaborators />} />
+                    <Route path="/dentists" element={<Dentists />} />
+                    <Route path="/job-types" element={<JobTypes />} />
+                    <Route path="/box-colors" element={<BoxColors />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </Layout>
         } />
       </Routes>
     </HashRouter>

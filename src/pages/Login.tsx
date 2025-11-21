@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useApp } from '../store/AppContext';
-import { Hexagon, ArrowRight, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
+import { Hexagon, ArrowRight, Mail, Lock, User as UserIcon, Loader2, Info } from 'lucide-react';
 
 const Login = () => {
   const { login, register } = useApp();
@@ -29,7 +30,7 @@ const Login = () => {
         if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
             setError("Email ou senha incorretos.");
         } else if (err.code === 'auth/email-already-in-use') {
-            setError("Este email já está cadastrado.");
+            setError("Este email já está cadastrado. Tente fazer login.");
         } else if (err.code === 'auth/weak-password') {
             setError("A senha deve ter pelo menos 6 caracteres.");
         } else if (err.code === 'permission-denied') {
@@ -123,7 +124,7 @@ const Login = () => {
                     className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                 >
                     {isLoading ? <Loader2 className="animate-spin" size={20} /> : <ArrowRight size={20} />}
-                    {isRegistering ? 'Cadastrar Conta' : 'Acessar Sistema'}
+                    {isRegistering ? 'Criar Senha e Entrar' : 'Acessar Sistema'}
                 </button>
              </form>
              
@@ -136,13 +137,21 @@ const Login = () => {
                     }}
                     className="text-sm text-slate-500 hover:text-blue-600 font-medium transition-colors"
                  >
-                    {isRegistering ? 'Já tem uma conta? Faça Login' : 'Primeiro acesso? Cadastre-se'}
+                    {isRegistering ? 'Já tem uma conta? Faça Login' : 'Primeiro acesso? Cadastre-se aqui'}
                  </button>
              </div>
 
              {isRegistering && (
-                <div className="mt-4 p-3 bg-blue-50 text-blue-700 text-xs rounded-lg text-center">
-                    💡 O primeiro usuário cadastrado no sistema será automaticamente definido como <strong>Administrador</strong>.
+                <div className="mt-4 space-y-2">
+                    <div className="p-3 bg-blue-50 text-blue-700 text-xs rounded-lg text-left flex gap-2 items-start">
+                        <Info size={14} className="mt-0.5 shrink-0" />
+                        <span>
+                            <strong>Colaborador:</strong> Se o gestor já colocou seu nome na lista, use o <strong>mesmo email</strong> informado por ele para criar sua senha aqui.
+                        </span>
+                    </div>
+                    <div className="p-3 bg-amber-50 text-amber-700 text-xs rounded-lg text-center">
+                        💡 O primeiro usuário do sistema será <strong>Administrador</strong>.
+                    </div>
                 </div>
              )}
           </div>
