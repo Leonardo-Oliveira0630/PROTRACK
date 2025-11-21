@@ -1,4 +1,5 @@
-import { Sector, User, UserRole, Job, UrgencyLevel, JobStatus } from './types';
+
+import { Sector, User, UserRole, Job, UrgencyLevel, JobStatus, JobType, BoxColor, Dentist } from './types';
 
 export const MOCK_SECTORS: Sector[] = [
   { id: 's1', name: 'Recepção & CAD' },
@@ -13,6 +14,32 @@ export const MOCK_USERS: User[] = [
   { id: 'u3', name: 'Carlos (Fresadora)', role: UserRole.COLLABORATOR, sectorId: 's2' },
   { id: 'u4', name: 'Beatriz (Ceramista)', role: UserRole.COLLABORATOR, sectorId: 's3' },
   { id: 'u5', name: 'Roberto (Qualidade)', role: UserRole.COLLABORATOR, sectorId: 's4' },
+];
+
+export const MOCK_JOB_TYPES: Omit<JobType, 'id'>[] = [
+  { name: 'Coroa em Zircônia' },
+  { name: 'Coroa E-max' },
+  { name: 'Lente de Contato' },
+  { name: 'Protocolo Acrílico' },
+  { name: 'Protocolo Zircônia' },
+  { name: 'Placa de Bruxismo' },
+  { name: 'Prótese Total (PT)' },
+  { name: 'Ponte Fixa (3 elementos)' },
+];
+
+export const MOCK_BOX_COLORS: Omit<BoxColor, 'id'>[] = [
+  { name: 'Azul (Padrão)', hex: '#3b82f6' },
+  { name: 'Vermelho (Urgente)', hex: '#ef4444' },
+  { name: 'Amarelo (Atenção)', hex: '#eab308' },
+  { name: 'Verde (Liberado)', hex: '#22c55e' },
+  { name: 'Roxo (Implante)', hex: '#a855f7' },
+  { name: 'Cinza (Prova)', hex: '#64748b' },
+];
+
+export const MOCK_DENTISTS: Omit<Dentist, 'id'>[] = [
+  { name: 'Dra. Ana Souza', clinicName: 'Sorriso Mais', email: 'ana@sorriso.com' },
+  { name: 'Dr. Carlos Mendes', clinicName: 'Implante Center', phone: '(11) 99999-8888' },
+  { name: 'Clínica OdontoLife', clinicName: 'Rede OdontoLife' },
 ];
 
 export const MOCK_JOBS: Job[] = [

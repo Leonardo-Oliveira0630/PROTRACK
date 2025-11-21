@@ -1,3 +1,4 @@
+
 import { 
     collection, 
     onSnapshot, 
@@ -21,7 +22,7 @@ import {
 } from "firebase/auth";
 import { db, auth } from "../firebase/config";
 import { Job, Sector, User, JobHistory, JobStatus, UserRole, Dentist, JobType, BoxColor } from "../types";
-import { MOCK_SECTORS } from "../constants";
+import { MOCK_SECTORS, MOCK_JOB_TYPES, MOCK_BOX_COLORS, MOCK_DENTISTS } from "../constants";
 
 // --- Collections ---
 const JOBS_COL = 'jobs';
@@ -241,19 +242,58 @@ export const deleteBoxColorFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, BOX_COLORS_COL, id));
 };
 
+// --- Seeding (Initial Data) ---
 export const seedDatabaseIfEmpty = async () => {
     try {
+        const batch = writeBatch(db);
+        let hasChanges = false;
+
+        // Seed Sectors
         const sectorsSnap = await getDocs(collection(db, SECTORS_COL));
         if (sectorsSnap.empty) {
-            const batch = writeBatch(db);
             MOCK_SECTORS.forEach(s => {
                 const { id, ...data } = s;
                 const ref = doc(collection(db, SECTORS_COL));
                 batch.set(ref, data);
             });
+            hasChanges = true;
+        }
+
+        // Seed Job Types (New)
+        const jobTypesSnap = await getDocs(collection(db, JOB_TYPES_COL));
+        if (jobTypesSnap.empty) {
+            MOCK_JOB_TYPES.forEach(t => {
+                const ref = doc(collection(db, JOB_TYPES_COL));
+                batch.set(ref, t);
+            });
+            hasChanges = true;
+        }
+
+        // Seed Box Colors (New)
+        const boxColorsSnap = await getDocs(collection(db, BOX_COLORS_COL));
+        if (boxColorsSnap.empty) {
+            MOCK_BOX_COLORS.forEach(c => {
+                const ref = doc(collection(db, BOX_COLORS_COL));
+                batch.set(ref, c);
+            });
+            hasChanges = true;
+        }
+
+        // Seed Dentists (New)
+        const dentistsSnap = await getDocs(collection(db, DENTISTS_COL));
+        if (dentistsSnap.empty) {
+            MOCK_DENTISTS.forEach(d => {
+                const ref = doc(collection(db, DENTISTS_COL));
+                batch.set(ref, d);
+            });
+            hasChanges = true;
+        }
+
+        if (hasChanges) {
             await batch.commit();
+            console.log("Database seeded with initial data.");
         }
     } catch (e) {
-        // Ignore
+        console.log("Seeding skipped or failed (likely due to permissions):", e);
     }
 };
