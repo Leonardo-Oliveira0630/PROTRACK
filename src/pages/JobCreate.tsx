@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { Job, JobStatus, UrgencyLevel } from '../types';
@@ -16,11 +17,18 @@ const JobCreate = () => {
     description: '',
     deliveryDate: '',
     urgency: UrgencyLevel.MEDIUM,
-    startSectorId: sectors[0]?.id || '',
+    startSectorId: '',
     isPromised: false,
     boxNumber: '',
     boxColor: boxColors[0]?.hex || '#cccccc'
   });
+
+  // Efeito para selecionar o primeiro setor automaticamente assim que os dados carregarem
+  useEffect(() => {
+    if (sectors.length > 0 && !formData.startSectorId) {
+        setFormData(prev => ({ ...prev, startSectorId: sectors[0].id }));
+    }
+  }, [sectors]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,6 +268,7 @@ const JobCreate = () => {
                             onChange={e => setFormData({...formData, startSectorId: e.target.value})}
                             className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 outline-none bg-white"
                         >
+                            <option value="">Selecione...</option>
                             {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
