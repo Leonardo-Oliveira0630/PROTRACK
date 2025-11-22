@@ -1,35 +1,66 @@
 import React, { useState } from 'react';
-import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown, Box, ScanBarcode } from 'lucide-react';
+import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown, Box, ScanBarcode, Calendar, User, X } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { StatusBadge } from '../components/StatusBadge';
-import { JobStatus, UrgencyLevel } from '../types';
+import { JobStatus, UrgencyLevel, UserRole } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const JobsList = () => {
-  const { jobs, sectors, finishJob, currentUser, triggerManualScan } = useApp();
+  const { jobs, sectors, users, finishJob, currentUser, triggerManualScan } = useApp();
   const navigate = useNavigate();
+  
+  // Existing Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [filterUrgency, setFilterUrgency] = useState<string>('ALL');
   const [filterSector, setFilterSector] = useState<string>('ALL');
 
+  // New Filters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [filterCollaborator, setFilterCollaborator] = useState<string>('ALL');
+
+  const isManagement = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER;
+
   const filteredJobs = jobs.filter(job => {
+    // 1. Text Search
     const matchesSearch = 
         job.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
         job.code.includes(searchTerm) ||
         job.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.dentistName?.toLowerCase().includes(searchTerm.toLowerCase());
 
+    // 2. Dropdown Filters
     const matchesStatus = filterStatus === 'ALL' || job.status === filterStatus;
     const matchesUrgency = filterUrgency === 'ALL' || job.urgency === filterUrgency;
-    
     const matchesSector = 
         filterSector === 'ALL' || 
         (filterSector === 'TRANSIT' ? job.currentSectorId === null : job.currentSectorId === filterSector);
 
-    return matchesSearch && matchesStatus && matchesUrgency && matchesSector;
+    // 3. Date Range Filter (Created At)
+    let matchesDate = true;
+    if (startDate) {
+        const jobDate = new Date(job.createdAt).setHours(0,0,0,0);
+        const start = new Date(startDate).setHours(0,0,0,0);
+        if (jobDate < start) matchesDate = false;
+    }
+    if (endDate) {
+        const jobDate = new Date(job.createdAt).setHours(0,0,0,0);
+        const end = new Date(endDate).setHours(23,59,59,999);
+        if (jobDate > end) matchesDate = false;
+    }
+
+    // 4. Collaborator Filter (Check History)
+    let matchesCollaborator = true;
+    if (filterCollaborator !== 'ALL') {
+        // Check if the selected user appears anywhere in the job history
+        const hasWorkedOnJob = job.history.some(h => h.userId === filterCollaborator);
+        if (!hasWorkedOnJob) matchesCollaborator = false;
+    }
+
+    return matchesSearch && matchesStatus && matchesUrgency && matchesSector && matchesDate && matchesCollaborator;
   });
 
   const getSectorName = (id: string | null) => {
@@ -47,6 +78,16 @@ const JobsList = () => {
       triggerManualScan(code);
   };
 
+  const clearFilters = () => {
+      setSearchTerm('');
+      setFilterStatus('ALL');
+      setFilterUrgency('ALL');
+      setFilterSector('ALL');
+      setStartDate('');
+      setEndDate('');
+      setFilterCollaborator('ALL');
+  };
+
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.setFillColor(15, 23, 42);
@@ -58,6 +99,17 @@ const JobsList = () => {
     doc.setTextColor(148, 163, 184);
     doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 28);
     doc.text(`Solicitado por: ${currentUser?.name || 'Usuário'}`, 14, 34);
+
+    // Add Filter Info to PDF
+    let filterText = "";
+    if (startDate || endDate) filterText += `Período: ${startDate || 'Inicio'} até ${endDate || 'Fim'}. `;
+    if (filterCollaborator !== 'ALL') {
+        const user = users.find(u => u.id === filterCollaborator);
+        filterText += `Colaborador: ${user?.name}. `;
+    }
+    if (filterText) {
+        doc.text(`Filtros: ${filterText}`, 14, 39);
+    }
 
     const tableColumn = ["OS/Cod", "Paciente", "Dentista", "Trabalho", "Setor Atual", "Status", "Entrega"];
     const tableRows = filteredJobs.map(job => [
@@ -103,50 +155,122 @@ const JobsList = () => {
         </button>
       </div>
 
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4">
-        <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-                type="text" 
-                placeholder="Buscar por paciente, dentista, código..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
-            />
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative min-w-[180px]">
-                <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <select 
-                    value={filterSector}
-                    onChange={(e) => setFilterSector(e.target.value)}
-                    className="w-full pl-10 pr-8 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 cursor-pointer text-sm appearance-none font-medium"
-                >
-                    <option value="ALL">Todos os Setores</option>
-                    <option value="TRANSIT">Em Trânsito</option>
-                    {sectors.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                </select>
-                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={12} />
+      {/* Filters Container */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        
+        {/* Row 1: Search and Quick Selects */}
+        <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input 
+                    type="text" 
+                    placeholder="Buscar por paciente, dentista, código..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
+                />
             </div>
-            <select 
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 cursor-pointer text-sm font-medium"
-            >
-                <option value="ALL">Todos Status</option>
-                {Object.values(JobStatus).map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select 
-                value={filterUrgency}
-                onChange={(e) => setFilterUrgency(e.target.value)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 cursor-pointer text-sm font-medium"
-            >
-                <option value="ALL">Todas Urgências</option>
-                {Object.values(UrgencyLevel).map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="relative min-w-[160px]">
+                    <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <select 
+                        value={filterSector}
+                        onChange={(e) => setFilterSector(e.target.value)}
+                        className="w-full pl-10 pr-8 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 cursor-pointer text-sm appearance-none font-medium"
+                    >
+                        <option value="ALL">Todos os Setores</option>
+                        <option value="TRANSIT">Em Trânsito</option>
+                        {sectors.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                    </select>
+                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={12} />
+                </div>
+                <select 
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 cursor-pointer text-sm font-medium"
+                >
+                    <option value="ALL">Todos Status</option>
+                    {Object.values(JobStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select 
+                    value={filterUrgency}
+                    onChange={(e) => setFilterUrgency(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 cursor-pointer text-sm font-medium col-span-2 md:col-span-1"
+                >
+                    <option value="ALL">Todas Urgências</option>
+                    {Object.values(UrgencyLevel).map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+            </div>
         </div>
+
+        {/* Row 2: Advanced Filters (Dates & Collaborator) */}
+        <div className="flex flex-col md:flex-row gap-4 pt-4 border-t border-slate-100 items-end">
+            <div className="flex gap-2 items-center flex-1 w-full">
+                <div className="flex-1">
+                    <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">De (Cadastro)</label>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input 
+                            type="date" 
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full pl-10 pr-2 py-2 rounded-lg border border-slate-200 text-sm focus:border-blue-500 outline-none"
+                        />
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Até</label>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input 
+                            type="date" 
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full pl-10 pr-2 py-2 rounded-lg border border-slate-200 text-sm focus:border-blue-500 outline-none"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {isManagement && (
+                <div className="flex-1 w-full">
+                    <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Filtrar por Colaborador (Histórico)</label>
+                    <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <select 
+                            value={filterCollaborator}
+                            onChange={(e) => setFilterCollaborator(e.target.value)}
+                            className="w-full pl-10 pr-8 py-2 rounded-lg border border-slate-200 text-sm focus:border-blue-500 outline-none bg-white appearance-none"
+                        >
+                            <option value="ALL">Qualquer Colaborador</option>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                        </select>
+                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 rotate-90 pointer-events-none" size={12} />
+                    </div>
+                </div>
+            )}
+
+            <button 
+                onClick={clearFilters}
+                className="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap h-[38px]"
+                title="Limpar todos os filtros"
+            >
+                <X size={16} /> Limpar
+            </button>
+        </div>
+      </div>
+
+      {/* Results Info */}
+      <div className="flex justify-between items-center text-xs text-slate-400 px-2">
+          <span>Exibindo {filteredJobs.length} resultados</span>
+          {(startDate || endDate || filterCollaborator !== 'ALL') && (
+              <span className="text-blue-500 font-medium">Filtros avançados ativos</span>
+          )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -261,6 +385,9 @@ const JobsList = () => {
                                         <Search className="text-slate-300" size={32} />
                                     </div>
                                     <p className="text-slate-500 font-medium">Nenhum caso encontrado com os filtros atuais.</p>
+                                    <button onClick={clearFilters} className="text-blue-500 text-sm hover:underline">
+                                        Limpar filtros
+                                    </button>
                                 </div>
                             </td>
                         </tr>
