@@ -12,6 +12,8 @@ import Collaborators from './pages/Collaborators';
 import Login from './pages/Login';
 import PromisedJobs from './pages/PromisedJobs';
 import GlobalScanModal from './components/GlobalScanModal';
+import UrgencyAlertModal from './components/UrgencyAlertModal';
+import QuickSwitchModal from './components/QuickSwitchModal';
 import ProductionCalendar from './pages/ProductionCalendar';
 import JobDetails from './pages/JobDetails';
 import Dentists from './pages/Dentists';
@@ -25,7 +27,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col h-full w-full lg:ml-64 transition-all duration-300 relative">
+      <div className="flex-1 flex flex-col h-full w-full lg:pl-64 transition-all duration-300 relative">
         <header className="lg:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between shrink-0 shadow-md z-40">
             <div className="flex items-center gap-3">
                 <div className="relative">
@@ -53,6 +55,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         </main>
       </div>
       <GlobalScanModal />
+      <UrgencyAlertModal />
+      <QuickSwitchModal />
     </div>
   );
 };

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { Job, JobStatus, UrgencyLevel } from '../types';
@@ -17,22 +16,29 @@ const JobCreate = () => {
     description: '',
     deliveryDate: '',
     urgency: UrgencyLevel.MEDIUM,
-    startSectorId: sectors[0]?.id || '',
+    startSectorId: '',
     isPromised: false,
     boxNumber: '',
     boxColor: boxColors[0]?.hex || '#cccccc'
   });
 
+  useEffect(() => {
+    if (sectors.length > 0 && !formData.startSectorId) {
+        setFormData(prev => ({ ...prev, startSectorId: sectors[0].id }));
+    }
+  }, [sectors]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Fallback logic for optional fields
     const newJob: Job = {
         id: Date.now().toString(),
         code: formData.code,
-        patientName: formData.patientName,
-        dentistName: formData.dentistName,
-        prosthesisType: formData.prosthesisType,
-        description: formData.description,
+        patientName: formData.patientName || 'Paciente não informado',
+        dentistName: formData.dentistName || 'Dentista não informado',
+        prosthesisType: formData.prosthesisType || 'Trabalho não especificado',
+        description: formData.description || 'Sem observações.',
         createdAt: new Date().toISOString(),
         deliveryDate: new Date(formData.deliveryDate).toISOString(),
         urgency: formData.urgency,
@@ -84,7 +90,6 @@ const JobCreate = () => {
                     <div className="md:col-span-2">
                         <label className="block text-sm font-bold text-slate-700 mb-2">Nome do Paciente</label>
                         <input 
-                            required
                             type="text" 
                             value={formData.patientName}
                             onChange={e => setFormData({...formData, patientName: e.target.value})}
@@ -101,7 +106,6 @@ const JobCreate = () => {
                             <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             {dentists.length > 0 ? (
                                 <select 
-                                    required
                                     value={formData.dentistName}
                                     onChange={e => setFormData({...formData, dentistName: e.target.value})}
                                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all bg-white"
@@ -111,7 +115,6 @@ const JobCreate = () => {
                                 </select>
                             ) : (
                                 <input 
-                                    required
                                     type="text"
                                     value={formData.dentistName}
                                     onChange={e => setFormData({...formData, dentistName: e.target.value})}
@@ -122,7 +125,7 @@ const JobCreate = () => {
                         </div>
                     </div>
                     <div className="md:col-span-1">
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Código OS / Pan</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Código OS / Pan *</label>
                         <input 
                             required
                             type="text" 
@@ -149,7 +152,6 @@ const JobCreate = () => {
                         </label>
                         {jobTypes.length > 0 ? (
                             <select 
-                                required
                                 value={formData.prosthesisType}
                                 onChange={e => setFormData({...formData, prosthesisType: e.target.value})}
                                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-purple-50 focus:border-purple-500 outline-none transition-all bg-white"
@@ -159,7 +161,6 @@ const JobCreate = () => {
                             </select>
                         ) : (
                             <input 
-                                required
                                 type="text"
                                 value={formData.prosthesisType}
                                 onChange={e => setFormData({...formData, prosthesisType: e.target.value})}
@@ -171,7 +172,6 @@ const JobCreate = () => {
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Observações / Cor / Dentes</label>
                         <textarea 
-                            required
                             rows={4}
                             value={formData.description}
                             onChange={e => setFormData({...formData, description: e.target.value})}
@@ -233,7 +233,7 @@ const JobCreate = () => {
                 
                 <div className="space-y-5">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Data de Entrega</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Data de Entrega *</label>
                         <input 
                             required
                             type="date" 
@@ -244,7 +244,7 @@ const JobCreate = () => {
                     </div>
                     
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Nível de Urgência</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Nível de Urgência *</label>
                         <select 
                             value={formData.urgency}
                             onChange={e => setFormData({...formData, urgency: e.target.value as UrgencyLevel})}
@@ -255,12 +255,14 @@ const JobCreate = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Setor Inicial</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Setor Inicial *</label>
                         <select 
                             value={formData.startSectorId}
                             onChange={e => setFormData({...formData, startSectorId: e.target.value})}
                             className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 outline-none bg-white"
+                            required
                         >
+                            <option value="">Selecione...</option>
                             {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>

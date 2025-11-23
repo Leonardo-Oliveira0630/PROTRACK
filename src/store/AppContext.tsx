@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { Job, User, Sector, UserRole, JobHistory, JobStatus, Dentist, JobType, BoxColor } from '../types';
+import { Job, User, Sector, UserRole, JobHistory, JobStatus, Dentist, JobType, BoxColor, Alert } from '../types';
 import { 
     subscribeToJobs, 
     subscribeToSectors, 
@@ -7,6 +7,7 @@ import {
     subscribeToDentists, 
     subscribeToJobTypes, 
     subscribeToBoxColors, 
+    subscribeToAlerts,
     addJobToFirestore, 
     updateJobInFirestore, 
     addSectorToFirestore, 
@@ -25,7 +26,9 @@ import {
     addJobTypeToFirestore, 
     deleteJobTypeFromFirestore, 
     addBoxColorToFirestore, 
-    deleteBoxColorFromFirestore 
+    deleteBoxColorFromFirestore,
+    addAlertToFirestore,
+    markAlertAsReadInFirestore
 } from '../services/firebaseService';
 
 interface ScanResult {
@@ -58,9 +61,17 @@ interface AppState {
   boxColors: BoxColor[];
   isLoading: boolean;
   
+  alerts: Alert[];
+  activeAlert: Alert | null;
+  dismissAlert: (alertId: string) => Promise<void>;
+  createAlert: (alert: Omit<Alert, 'id' | 'createdAt' | 'readBy' | 'createdBy'>) => Promise<void>;
+
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
   setMobileMenuOpen: (isOpen: boolean) => void;
+
+  isQuickSwitchOpen: boolean;
+  setQuickSwitchOpen: (isOpen: boolean) => void;
 
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -102,6 +113,7 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isQuickSwitchOpen, setQuickSwitchOpen] = useState(false);
   
   const [users, setUsers] = useState<User[]>([]);
   const [sectors, setSectors] = useState<Sector[]>([]);
@@ -109,6 +121,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [dentists, setDentists] = useState<Dentist[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [boxColors, setBoxColors] = useState<BoxColor[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [activeAlert, setActiveAlert] = useState<Alert | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -121,7 +135,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const bufferRef = useRef('');
   const lastKeyTimeRef = useRef(0);
 
-  // Auth Listener
   useEffect(() => {
     const unsubscribeAuth = monitorAuthState((user) => {
       setCurrentUser(user);
@@ -129,7 +142,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => unsubscribeAuth();
   }, []);
 
-  // Data Listener
   useEffect(() => {
     let unsubJobs: () => void;
     let unsubSectors: () => void;
@@ -137,6 +149,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let unsubDentists: () => void;
     let unsubTypes: () => void;
     let unsubColors: () => void;
+    let unsubAlerts: () => void;
 
     if (currentUser) {
         if (currentUser.role === UserRole.ADMIN) {
@@ -155,6 +168,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         unsubDentists = subscribeToDentists(setDentists);
         unsubTypes = subscribeToJobTypes(setJobTypes);
         unsubColors = subscribeToBoxColors(setBoxColors);
+        unsubAlerts = subscribeToAlerts(setAlerts);
 
         setIsLoading(false);
 
@@ -165,6 +179,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setDentists([]);
         setJobTypes([]);
         setBoxColors([]);
+        setAlerts([]);
         setIsLoading(false);
     }
 
@@ -175,8 +190,63 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if(unsubDentists) unsubDentists();
         if(unsubTypes) unsubTypes();
         if(unsubColors) unsubColors();
+        if(unsubAlerts) unsubAlerts();
     };
   }, [currentUser?.id, currentUser?.role]);
+
+  useEffect(() => {
+    if (!currentUser || alerts.length === 0) return;
+
+    const checkAlerts = () => {
+        const now = new Date();
+        
+        const pendingAlert = alerts.find(alert => {
+            const triggerTime = new Date(alert.targetDate);
+            const isTime = now >= triggerTime;
+            const isRead = alert.readBy.includes(currentUser.id);
+            
+            let isTarget = false;
+            
+            if (alert.targetUserId) {
+                if (alert.targetUserId === currentUser.id) isTarget = true;
+            } else if (alert.targetSectorId && alert.targetSectorId !== 'ALL') {
+                if (currentUser.sectorId === alert.targetSectorId) isTarget = true;
+            } else {
+                isTarget = true;
+            }
+
+            return isTime && !isRead && isTarget;
+        });
+
+        if (pendingAlert) {
+            setActiveAlert(pendingAlert);
+        }
+    };
+
+    checkAlerts();
+    const interval = setInterval(checkAlerts, 10000);
+
+    return () => clearInterval(interval);
+  }, [alerts, currentUser]);
+
+  const dismissAlert = async (alertId: string) => {
+      if (!currentUser) return;
+      setActiveAlert(null);
+      await markAlertAsReadInFirestore(alertId, currentUser.id);
+  };
+
+  const createAlert = async (alertData: Omit<Alert, 'id' | 'createdAt' | 'readBy' | 'createdBy'>) => {
+      if (!currentUser) return;
+      
+      const newAlert: Omit<Alert, 'id'> = {
+          ...alertData,
+          createdAt: new Date().toISOString(),
+          createdBy: currentUser.id,
+          readBy: []
+      };
+      
+      await addAlertToFirestore(newAlert);
+  };
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
   const setMobileMenuOpen = (isOpen: boolean) => setIsMobileMenuOpen(isOpen);
@@ -362,7 +432,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     const mySector = sectors.find(s => s.id === currentUser.sectorId);
-    if (!mySector && !currentUser.sectorId) return { action: 'ERROR', message: "Usuário sem setor configurado" };
+    if (!mySector && !currentUser.sectorId) return { action: 'ERROR', message: "Usuário sem setor configurado. Contate o Admin." };
     
     const sectorName = mySector?.name || "Setor do Usuário";
     const isCurrentlyInMySector = job.currentSectorId === currentUser.sectorId;
@@ -482,7 +552,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, triggerManualScan, getJobByCode, getJobById,
       addSector, deleteSector, addUser, deleteUser, updateAnyUserSector, updateAnyUserRole,
       addDentist, deleteDentist, addJobType, deleteJobType, addBoxColor, deleteBoxColor,
-      scanModalState, closeScanModal, confirmScanModal
+      scanModalState, closeScanModal, confirmScanModal,
+      // EXPORTS DE ALERTA E TROCA RÁPIDA
+      alerts, activeAlert, dismissAlert, createAlert,
+      isQuickSwitchOpen, setQuickSwitchOpen
     }}>
       {children}
     </AppContext.Provider>

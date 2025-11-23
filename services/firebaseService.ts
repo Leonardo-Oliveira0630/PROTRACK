@@ -1,4 +1,3 @@
-
 import { 
     collection, 
     onSnapshot, 
@@ -12,7 +11,8 @@ import {
     getDocs,
     where,
     setDoc,
-    getDoc
+    getDoc,
+    arrayUnion
 } from "firebase/firestore";
 import { 
     createUserWithEmailAndPassword, 
@@ -21,7 +21,7 @@ import {
     onAuthStateChanged
 } from "firebase/auth";
 import { db, auth } from "../firebase/config";
-import { Job, Sector, User, JobHistory, JobStatus, UserRole, Dentist, JobType, BoxColor } from "../types";
+import { Job, Sector, User, JobHistory, JobStatus, UserRole, Dentist, JobType, BoxColor, Alert } from "../types";
 import { MOCK_SECTORS } from "../constants";
 
 // --- Collections ---
@@ -31,6 +31,7 @@ const USERS_COL = 'users';
 const DENTISTS_COL = 'dentists';
 const JOB_TYPES_COL = 'job_types';
 const BOX_COLORS_COL = 'box_colors';
+const ALERTS_COL = 'alerts';
 
 // --- Subscriptions (Real-time) ---
 
@@ -40,7 +41,6 @@ export const subscribeToJobs = (callback: (jobs: Job[]) => void) => {
         const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         callback(jobs);
     }, (error) => {
-        // Silently ignore permission errors for collaborators who might not have full read access
         if (error.code !== 'permission-denied') console.warn("Error jobs:", error);
         callback([]);
     });
@@ -101,6 +101,21 @@ export const subscribeToBoxColors = (callback: (colors: BoxColor[]) => void) => 
     });
 };
 
+export const subscribeToAlerts = (callback: (alerts: Alert[]) => void) => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const q = query(collection(db, ALERTS_COL), where('targetDate', '>=', sevenDaysAgo.toISOString()));
+    
+    return onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Alert));
+        callback(data);
+    }, (error) => {
+        if (error.code !== 'permission-denied') console.warn("Error alerts:", error);
+        callback([]);
+    });
+};
+
 // --- Auth Logic ---
 
 export const monitorAuthState = (onUserChanged: (user: User | null) => void) => {
@@ -114,11 +129,9 @@ export const monitorAuthState = (onUserChanged: (user: User | null) => void) => 
                     const userData = docSnap.data() as User;
                     onUserChanged({ ...userData, id: firebaseUser.uid, email: firebaseUser.email || '' });
                 } else {
-                    console.log("User profile not found in Firestore yet.");
                     onUserChanged(null);
                 }
             } catch (error) {
-                console.error("Error fetching user profile:", error);
                 onUserChanged(null);
             }
         } else {
@@ -143,8 +156,6 @@ export const registerNewUser = async (name: string, email: string, password: str
     let sectorId = '';
     let existingDocId = null;
 
-    // Try to check for pre-registration or empty DB. 
-    // Wrap in try/catch because Security Rules might deny read access to unverified users.
     try {
         const q = query(collection(db, USERS_COL), where("email", "==", email));
         const querySnapshot = await getDocs(q);
@@ -156,19 +167,13 @@ export const registerNewUser = async (name: string, email: string, password: str
             sectorId = existingData.sectorId || '';
         } else {
             try {
-                // Only check for empty DB if we failed to find a pre-registration
-                // This might fail if permissions are strict, which is fine (default to Collaborator)
                 const usersSnapshot = await getDocs(collection(db, USERS_COL));
                 if (usersSnapshot.empty) {
                     role = UserRole.ADMIN;
                 }
-            } catch (e) {
-                console.log("Skipping empty DB check due to permissions (assuming not empty)");
-            }
+            } catch (e) {}
         }
-    } catch (error) {
-        console.log("Permission denied checking existing users. Proceeding with default creation.", error);
-    }
+    } catch (error) {}
 
     const newUser: User = {
         id: uid,
@@ -226,8 +231,6 @@ export const deleteUserFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, USERS_COL, id));
 };
 
-// --- Aux Mutations ---
-
 export const addDentistToFirestore = async (dentist: Omit<Dentist, 'id'>) => {
     await addDoc(collection(db, DENTISTS_COL), dentist);
 };
@@ -249,7 +252,17 @@ export const deleteBoxColorFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, BOX_COLORS_COL, id));
 };
 
-// --- Seeding (Initial Data) ---
+export const addAlertToFirestore = async (alert: Omit<Alert, 'id'>) => {
+    await addDoc(collection(db, ALERTS_COL), alert);
+};
+
+export const markAlertAsReadInFirestore = async (alertId: string, userId: string) => {
+    const ref = doc(db, ALERTS_COL, alertId);
+    await updateDoc(ref, {
+        readBy: arrayUnion(userId)
+    });
+};
+
 export const seedDatabaseIfEmpty = async () => {
     try {
         const sectorsSnap = await getDocs(collection(db, SECTORS_COL));
@@ -262,7 +275,5 @@ export const seedDatabaseIfEmpty = async () => {
             });
             await batch.commit();
         }
-    } catch (e) {
-        // Ignore
-    }
+    } catch (e) {}
 };

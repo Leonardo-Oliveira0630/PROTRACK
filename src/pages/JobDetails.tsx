@@ -1,14 +1,15 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
-import { UrgencyLevel } from '../types';
-import { ArrowLeft, Calendar, User, FileText, Activity, AlertCircle, CheckCircle2, MapPin, Clock, Edit, Save, ArrowRight, Box, Star, X, ScanBarcode } from 'lucide-react';
+import { UrgencyLevel, UserRole } from '../types';
+import { ArrowLeft, Calendar, User, FileText, Activity, AlertCircle, CheckCircle2, MapPin, Clock, Edit, Save, ArrowRight, Box, Star, X, ScanBarcode, BellRing, Send } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 
 const JobDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getJobById, updateJob, finishJob, currentUser, dentists, jobTypes, boxColors, triggerManualScan } = useApp();
+  const { getJobById, updateJob, finishJob, currentUser, dentists, jobTypes, boxColors, triggerManualScan, createAlert, users, sectors } = useApp();
   
   const job = getJobById(id || '');
   
@@ -26,6 +27,18 @@ const JobDetails = () => {
     isPromised: false
   });
 
+  // Alert Modal State
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [alertForm, setAlertForm] = useState({
+      title: 'URGÊNCIA DE PRODUÇÃO',
+      message: '',
+      targetDate: new Date().toISOString().slice(0, 16), // datetime-local format
+      targetSectorId: '',
+      targetUserId: ''
+  });
+
+  const isManagement = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER;
+
   if (!job) {
       return (
           <div className="text-center p-10">
@@ -41,7 +54,6 @@ const JobDetails = () => {
 
   const handleEditToggle = () => {
       if (!isEditing) {
-          // Enter edit mode: populate form
           setEditForm({
               patientName: job.patientName,
               dentistName: job.dentistName,
@@ -72,8 +84,96 @@ const JobDetails = () => {
       setIsEditing(false);
   };
 
+  const handleCreateAlert = async (e: React.FormEvent) => {
+      e.preventDefault();
+      await createAlert({
+          title: alertForm.title,
+          message: alertForm.message,
+          targetDate: new Date(alertForm.targetDate).toISOString(),
+          jobId: job.code,
+          targetSectorId: alertForm.targetSectorId || undefined,
+          targetUserId: alertForm.targetUserId || undefined
+      });
+      setIsAlertModalOpen(false);
+      alert("Alarme agendado com sucesso!");
+  };
+
   return (
-    <div className="max-w-5xl mx-auto pb-12">
+    <div className="max-w-5xl mx-auto pb-12 relative">
+      
+      {/* Alert Creation Modal */}
+      {isAlertModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+                  <div className="bg-red-600 p-4 flex justify-between items-center text-white">
+                      <h3 className="font-bold flex items-center gap-2">
+                          <BellRing size={20} /> Criar Alerta de Urgência
+                      </h3>
+                      <button onClick={() => setIsAlertModalOpen(false)} className="hover:bg-red-700 p-1 rounded-full"><X size={20}/></button>
+                  </div>
+                  <form onSubmit={handleCreateAlert} className="p-6 space-y-4">
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Título do Alerta</label>
+                          <input 
+                              type="text" 
+                              value={alertForm.title}
+                              onChange={e => setAlertForm({...alertForm, title: e.target.value})}
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700"
+                              required
+                          />
+                      </div>
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mensagem</label>
+                          <textarea 
+                              value={alertForm.message}
+                              onChange={e => setAlertForm({...alertForm, message: e.target.value})}
+                              placeholder="Ex: Prioridade máxima, cliente aguardando na recepção!"
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg h-24 resize-none"
+                              required
+                          />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data/Hora Disparo</label>
+                              <input 
+                                  type="datetime-local"
+                                  value={alertForm.targetDate}
+                                  onChange={e => setAlertForm({...alertForm, targetDate: e.target.value})}
+                                  className="w-full px-2 py-2 border border-slate-300 rounded-lg text-xs"
+                                  required
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor Alvo (Opcional)</label>
+                              <select 
+                                  value={alertForm.targetSectorId}
+                                  onChange={e => setAlertForm({...alertForm, targetSectorId: e.target.value, targetUserId: ''})}
+                                  className="w-full px-2 py-2 border border-slate-300 rounded-lg text-xs"
+                              >
+                                  <option value="">Todos os Setores</option>
+                                  {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                              </select>
+                          </div>
+                      </div>
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador Específico (Opcional)</label>
+                          <select 
+                              value={alertForm.targetUserId}
+                              onChange={e => setAlertForm({...alertForm, targetUserId: e.target.value, targetSectorId: ''})}
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                          >
+                              <option value="">Qualquer um do setor</option>
+                              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                          </select>
+                      </div>
+                      <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
+                          <Send size={18} /> Agendar Alerta
+                      </button>
+                  </form>
+              </div>
+          </div>
+      )}
+
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
             <ArrowLeft size={20} />
@@ -88,8 +188,18 @@ const JobDetails = () => {
             
             {/* Card Principal */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative">
-                {/* Edit / Save Actions */}
+                {/* Actions Header */}
                 <div className="absolute top-6 right-6 flex gap-2">
+                    {isManagement && !isEditing && !job.isFinished && (
+                        <button 
+                            onClick={() => setIsAlertModalOpen(true)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors border border-red-100"
+                            title="Criar Alerta de Urgência"
+                        >
+                            <BellRing size={14} /> <span className="hidden sm:inline">Alerta</span>
+                        </button>
+                    )}
+                    
                     {isEditing ? (
                         <>
                             <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition-colors shadow-md">

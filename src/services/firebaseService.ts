@@ -1,4 +1,3 @@
-
 import { 
     collection, 
     onSnapshot, 
@@ -12,7 +11,8 @@ import {
     getDocs,
     where,
     setDoc,
-    getDoc
+    getDoc,
+    arrayUnion
 } from "firebase/firestore";
 import { 
     createUserWithEmailAndPassword, 
@@ -21,8 +21,8 @@ import {
     onAuthStateChanged
 } from "firebase/auth";
 import { db, auth } from "../firebase/config";
-import { Job, Sector, User, JobHistory, JobStatus, UserRole, Dentist, JobType, BoxColor } from "../types";
-import { MOCK_SECTORS, MOCK_JOB_TYPES, MOCK_BOX_COLORS, MOCK_DENTISTS } from "../constants";
+import { Job, Sector, User, JobHistory, JobStatus, UserRole, Dentist, JobType, BoxColor, Alert } from "../types";
+import { MOCK_SECTORS } from "../constants";
 
 // --- Collections ---
 const JOBS_COL = 'jobs';
@@ -31,6 +31,7 @@ const USERS_COL = 'users';
 const DENTISTS_COL = 'dentists';
 const JOB_TYPES_COL = 'job_types';
 const BOX_COLORS_COL = 'box_colors';
+const ALERTS_COL = 'alerts';
 
 // --- Subscriptions (Real-time) ---
 
@@ -100,6 +101,21 @@ export const subscribeToBoxColors = (callback: (colors: BoxColor[]) => void) => 
     });
 };
 
+export const subscribeToAlerts = (callback: (alerts: Alert[]) => void) => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const q = query(collection(db, ALERTS_COL), where('targetDate', '>=', sevenDaysAgo.toISOString()));
+    
+    return onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Alert));
+        callback(data);
+    }, (error) => {
+        if (error.code !== 'permission-denied') console.warn("Error alerts:", error);
+        callback([]);
+    });
+};
+
 // --- Auth Logic ---
 
 export const monitorAuthState = (onUserChanged: (user: User | null) => void) => {
@@ -113,28 +129,9 @@ export const monitorAuthState = (onUserChanged: (user: User | null) => void) => 
                     const userData = docSnap.data() as User;
                     onUserChanged({ ...userData, id: firebaseUser.uid, email: firebaseUser.email || '' });
                 } else {
-                    console.log("User profile not found in Firestore. Attempting Auto-Repair...");
-                    // AUTO-REPAIR: Create default profile if missing
-                    // This happens if registration partially failed or if admin pre-reg link failed
-                    const newUser: User = {
-                        id: firebaseUser.uid,
-                        name: firebaseUser.displayName || 'Colaborador',
-                        email: firebaseUser.email || '',
-                        role: UserRole.COLLABORATOR,
-                        sectorId: '' // Will force sector selection on next step
-                    };
-                    
-                    try {
-                        await setDoc(docRef, newUser);
-                        onUserChanged(newUser);
-                        console.log("Auto-Repair successful.");
-                    } catch (createErr) {
-                        console.error("Auto-Repair failed:", createErr);
-                        onUserChanged(null);
-                    }
+                    onUserChanged(null);
                 }
             } catch (error) {
-                console.error("Error fetching user profile:", error);
                 onUserChanged(null);
             }
         } else {
@@ -160,7 +157,6 @@ export const registerNewUser = async (name: string, email: string, password: str
     let existingDocId = null;
 
     try {
-        // Try to find if admin pre-registered this email
         const q = query(collection(db, USERS_COL), where("email", "==", email));
         const querySnapshot = await getDocs(q);
         
@@ -175,13 +171,9 @@ export const registerNewUser = async (name: string, email: string, password: str
                 if (usersSnapshot.empty) {
                     role = UserRole.ADMIN;
                 }
-            } catch (e) {
-                console.log("Skipping empty DB check due to permissions");
-            }
+            } catch (e) {}
         }
-    } catch (error) {
-        console.log("Permission denied checking existing users. Proceeding with default creation.");
-    }
+    } catch (error) {}
 
     const newUser: User = {
         id: uid,
@@ -191,16 +183,12 @@ export const registerNewUser = async (name: string, email: string, password: str
         sectorId
     };
 
-    // Create the definitive user document linked to Auth UID
     await setDoc(doc(db, USERS_COL, uid), newUser);
 
-    // If there was a placeholder document from admin, delete it to clean up
     if (existingDocId && existingDocId !== uid) {
         try {
             await deleteDoc(doc(db, USERS_COL, existingDocId));
-        } catch (e) {
-            // Ignore delete errors (permissions)
-        }
+        } catch (e) {}
     }
     
     return newUser;
@@ -264,58 +252,28 @@ export const deleteBoxColorFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, BOX_COLORS_COL, id));
 };
 
-// --- Seeding (Initial Data) ---
+export const addAlertToFirestore = async (alert: Omit<Alert, 'id'>) => {
+    await addDoc(collection(db, ALERTS_COL), alert);
+};
+
+export const markAlertAsReadInFirestore = async (alertId: string, userId: string) => {
+    const ref = doc(db, ALERTS_COL, alertId);
+    await updateDoc(ref, {
+        readBy: arrayUnion(userId)
+    });
+};
+
 export const seedDatabaseIfEmpty = async () => {
     try {
-        const batch = writeBatch(db);
-        let hasChanges = false;
-
-        // Seed Sectors
         const sectorsSnap = await getDocs(collection(db, SECTORS_COL));
         if (sectorsSnap.empty) {
+            const batch = writeBatch(db);
             MOCK_SECTORS.forEach(s => {
                 const { id, ...data } = s;
                 const ref = doc(collection(db, SECTORS_COL));
                 batch.set(ref, data);
             });
-            hasChanges = true;
-        }
-
-        // Seed Job Types (New)
-        const jobTypesSnap = await getDocs(collection(db, JOB_TYPES_COL));
-        if (jobTypesSnap.empty) {
-            MOCK_JOB_TYPES.forEach(t => {
-                const ref = doc(collection(db, JOB_TYPES_COL));
-                batch.set(ref, t);
-            });
-            hasChanges = true;
-        }
-
-        // Seed Box Colors (New)
-        const boxColorsSnap = await getDocs(collection(db, BOX_COLORS_COL));
-        if (boxColorsSnap.empty) {
-            MOCK_BOX_COLORS.forEach(c => {
-                const ref = doc(collection(db, BOX_COLORS_COL));
-                batch.set(ref, c);
-            });
-            hasChanges = true;
-        }
-
-        // Seed Dentists (New)
-        const dentistsSnap = await getDocs(collection(db, DENTISTS_COL));
-        if (dentistsSnap.empty) {
-            MOCK_DENTISTS.forEach(d => {
-                const ref = doc(collection(db, DENTISTS_COL));
-                batch.set(ref, d);
-            });
-            hasChanges = true;
-        }
-
-        if (hasChanges) {
             await batch.commit();
-            console.log("Database seeded with initial data.");
         }
-    } catch (e) {
-        console.log("Seeding skipped or failed (likely due to permissions):", e);
-    }
+    } catch (e) {}
 };

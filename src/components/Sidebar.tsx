@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ScanBarcode, LogOut, PlusCircle, Hexagon, Layers, UserCog, Star, CalendarDays, Stethoscope, FileText, Palette, Settings, X } from 'lucide-react';
+import { LayoutDashboard, Package, ScanBarcode, LogOut, PlusCircle, Hexagon, Layers, UserCog, Star, CalendarDays, Stethoscope, FileText, Palette, Settings, X, Users } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { UserRole } from '../types';
 
 const Sidebar = () => {
   const { pathname } = useLocation();
-  const { currentUser, logout, isMobileMenuOpen, setMobileMenuOpen } = useApp();
+  const { currentUser, logout, isMobileMenuOpen, setMobileMenuOpen, setQuickSwitchOpen } = useApp();
 
   const isActive = (path: string) => pathname === path 
     ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-900/50 border-l-4 border-white' 
@@ -15,13 +15,12 @@ const Sidebar = () => {
   const isManagement = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER;
 
   const handleLinkClick = () => {
-    // Auto-close menu on mobile/tablet when clicking a link
     setMobileMenuOpen(false);
   };
 
   return (
     <>
-      {/* Mobile/Tablet Overlay - Darkens background when menu is open */}
+      {/* Mobile Overlay */}
       <div 
         className={`fixed inset-0 bg-black/60 z-[45] lg:hidden backdrop-blur-sm transition-opacity duration-300 ${
             isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -30,15 +29,13 @@ const Sidebar = () => {
       />
 
       {/* Sidebar Container */}
-      {/* Changed breakpoint to lg (1024px) so tablets see the mobile menu */}
-      {/* Removed md:static to keep it fixed always for better scrolling behavior */}
       <div className={`fixed inset-y-0 left-0 z-[50] w-64 bg-[#0f172a] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out border-r border-slate-800/50 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0`}>
         
-        {/* Header */}
+        {/* Header & User Info */}
         <div className="p-8 border-b border-slate-800/50 bg-[#0f172a] flex justify-between items-start shrink-0">
-            <div>
+            <div className="w-full">
                 <h1 className="text-2xl font-bold text-white flex items-center gap-3 tracking-tight">
                 <div className="relative">
                     <Hexagon className="w-8 h-8 text-blue-500 fill-blue-500/20" />
@@ -50,21 +47,29 @@ const Sidebar = () => {
                     ProTrack
                 </span>
                 </h1>
-                <div className="mt-6 flex flex-col pl-1">
+                
+                <div className="mt-6 flex flex-col pl-1 w-full">
                     <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold mb-1">
                         {currentUser?.role === UserRole.ADMIN ? 'Administrador' : 
                         currentUser?.role === UserRole.MANAGER ? 'Gestor de Produção' : 'Operador Técnico'}
                     </span>
-                    <span className="text-sm text-slate-200 font-medium truncate max-w-[180px]">
+                    <span className="text-sm text-slate-200 font-medium truncate max-w-[180px] mb-3">
                         {currentUser?.name}
                     </span>
+                    
+                    {/* BOTÃO DE TROCA RÁPIDA */}
+                    <button 
+                      onClick={() => setQuickSwitchOpen(true)}
+                      className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 text-xs font-bold rounded-lg transition-all border border-slate-700 shadow-sm"
+                    >
+                      <Users size={14} /> Trocar Operador
+                    </button>
                 </div>
             </div>
             
-            {/* Close Button (Mobile/Tablet Only) */}
             <button 
                 onClick={() => setMobileMenuOpen(false)}
-                className="lg:hidden text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors"
+                className="lg:hidden text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors absolute right-4 top-4"
                 aria-label="Fechar menu"
             >
                 <X size={24} />
