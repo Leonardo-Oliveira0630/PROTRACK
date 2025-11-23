@@ -1,4 +1,3 @@
-
 export enum UserRole {
   ADMIN = 'ADMIN',
   MANAGER = 'GESTOR',
@@ -78,4 +77,18 @@ export interface Job {
   reminderNote?: string;
   boxNumber?: string;
   boxColor?: string; // Hex code
+}
+
+// INTERFACE QUE ESTAVA FALTANDO
+export interface Alert {
+  id: string;
+  title: string;
+  message: string;
+  targetDate: string; // ISO Date string
+  jobId?: string; // Optional link to a job
+  targetSectorId?: string; // 'ALL', specific ID, or null
+  targetUserId?: string; // Specific user ID or null
+  createdBy: string;
+  createdAt: string;
+  readBy: string[]; // Array of user IDs who have acknowledged this alert
 }

@@ -1,4 +1,3 @@
-
 export enum UserRole {
   ADMIN = 'ADMIN',
   MANAGER = 'GESTOR',
@@ -57,7 +56,7 @@ export interface JobHistory {
   sectorName: string;
   userId: string;
   userName: string;
-  changes?: string[];
+  changes?: string[]; // Array describing what changed (e.g. "Changed Urgency from Low to High")
 }
 
 export interface Job {
@@ -77,14 +76,15 @@ export interface Job {
   isPromised?: boolean; 
   reminderNote?: string;
   boxNumber?: string;
-  boxColor?: string;
+  boxColor?: string; // Hex code
 }
 
+// INTERFACE QUE ESTAVA FALTANDO
 export interface Alert {
   id: string;
   title: string;
   message: string;
-  targetDate: string; // ISO Date for when the alert should trigger
+  targetDate: string; // ISO Date string
   jobId?: string; // Optional link to a job
   targetSectorId?: string; // 'ALL', specific ID, or null
   targetUserId?: string; // Specific user ID or null
