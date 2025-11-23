@@ -5,8 +5,26 @@ import { StatusBadge } from '../components/StatusBadge';
 import { CalendarClock, AlertTriangle, Bell, CheckCircle2, Star, Clock, Stethoscope, CheckCircle, Box } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// ... (SectionHeader component remains same)
+// Componente Auxiliar: Section Header
+// (Isso estava faltando ou quebrado antes)
+interface SectionHeaderProps {
+  title: string;
+  count: number;
+  icon: React.ElementType;
+  colorClass: string;
+}
 
+const SectionHeader: React.FC<SectionHeaderProps> = ({ title, count, icon: Icon, colorClass }) => (
+  <div className={`flex items-center gap-2 pb-2 border-b mb-4 ${colorClass}`}>
+    <Icon size={20} />
+    <h3 className="font-bold text-lg uppercase tracking-wide">{title}</h3>
+    <span className="bg-white px-2 py-0.5 rounded-full text-sm font-bold shadow-sm border ml-auto">
+      {count}
+    </span>
+  </div>
+);
+
+// Componente Auxiliar: Job Card
 interface JobCardProps {
   job: Job;
   sectorName: string;
@@ -128,12 +146,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, sectorName, isEditing, tempNote,
     );
 };
 
-// ... (PromisedJobs component remains mostly same, just using updated JobCard)
+// Componente Principal
 const PromisedJobs = () => {
-  // ... (rest of the component code)
-  // Certifique-se de incluir o componente SectionHeader e a lógica principal
-  // Vou incluir apenas o retorno principal para brevidade, já que a lógica não mudou, apenas o card.
-  
   const { jobs, sectors, updateJobReminder, finishJob } = useApp();
   const navigate = useNavigate();
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -142,7 +156,6 @@ const PromisedJobs = () => {
   // Filter only Promised Jobs
   const promisedJobs = jobs.filter(job => job.isPromised && !job.isFinished);
 
-  // ... (sorting logic same as before) ...
   const today = new Date();
   today.setHours(0,0,0,0);
   const tomorrow = new Date(today);
@@ -169,8 +182,6 @@ const PromisedJobs = () => {
       groups.upcoming.push(job);
     }
   });
-  
-  // ... sorting functions ...
 
   const getSectorName = (id: string | null) => {
     if (!id) return "Em Trânsito";
@@ -196,6 +207,7 @@ const PromisedJobs = () => {
                 <Star className="text-yellow-400 fill-yellow-400" />
                 Casos Prometidos / VIP
             </h2>
+            <p className="text-slate-500 text-sm mt-1">Monitoramento prioritário de casos com data marcada.</p>
         </div>
       </div>
 
@@ -205,11 +217,10 @@ const PromisedJobs = () => {
         <div className="space-y-8">
             {groups.late.length > 0 && (
                 <section>
-                    <SectionHeader title="ATRASADOS" count={groups.late.length} icon={AlertTriangle} colorClass="text-red-600 border-red-200" />
+                    <SectionHeader title="ATRASADOS / CRÍTICOS" count={groups.late.length} icon={AlertTriangle} colorClass="text-red-600 border-red-200" />
                     <div className="space-y-3">{groups.late.map(job => <JobCard key={job.id} job={job} sectorName={getSectorName(job.currentSectorId)} isEditing={editingNoteId === job.id} tempNote={tempNote} setTempNote={setTempNote} onSave={saveNote} onCancel={() => setEditingNoteId(null)} onEdit={startEditing} onFinish={finishJob} onNavigate={(id) => navigate(`/jobs/${id}`)} />)}</div>
                 </section>
             )}
-            {/* ... other sections (today, tomorrow, upcoming) follow same pattern using JobCard ... */}
              {groups.today.length > 0 && (
                 <section>
                     <SectionHeader title="Entrega Hoje" count={groups.today.length} icon={Clock} colorClass="text-slate-800 border-slate-200" />
@@ -218,13 +229,13 @@ const PromisedJobs = () => {
             )}
              {groups.tomorrow.length > 0 && (
                 <section>
-                    <SectionHeader title="Amanhã" count={groups.tomorrow.length} icon={CalendarClock} colorClass="text-blue-600 border-blue-200" />
+                    <SectionHeader title="Entrega Amanhã" count={groups.tomorrow.length} icon={CalendarClock} colorClass="text-blue-600 border-blue-200" />
                     <div className="space-y-3">{groups.tomorrow.map(job => <JobCard key={job.id} job={job} sectorName={getSectorName(job.currentSectorId)} isEditing={editingNoteId === job.id} tempNote={tempNote} setTempNote={setTempNote} onSave={saveNote} onCancel={() => setEditingNoteId(null)} onEdit={startEditing} onFinish={finishJob} onNavigate={(id) => navigate(`/jobs/${id}`)} />)}</div>
                 </section>
             )}
              {groups.upcoming.length > 0 && (
                 <section>
-                    <SectionHeader title="Futuros" count={groups.upcoming.length} icon={CheckCircle2} colorClass="text-slate-500 border-slate-200" />
+                    <SectionHeader title="Entregas Futuras" count={groups.upcoming.length} icon={CheckCircle2} colorClass="text-slate-500 border-slate-200" />
                     <div className="space-y-3">{groups.upcoming.map(job => <JobCard key={job.id} job={job} sectorName={getSectorName(job.currentSectorId)} isEditing={editingNoteId === job.id} tempNote={tempNote} setTempNote={setTempNote} onSave={saveNote} onCancel={() => setEditingNoteId(null)} onEdit={startEditing} onFinish={finishJob} onNavigate={(id) => navigate(`/jobs/${id}`)} />)}</div>
                 </section>
             )}
