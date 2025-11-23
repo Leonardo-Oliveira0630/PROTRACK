@@ -30,6 +30,8 @@ import {
     addAlertToFirestore,
     markAlertAsReadInFirestore
 } from '../services/firebaseService';
+import { auth } from '../firebase/config';
+import { signOut } from "firebase/auth";
 
 interface ScanResult {
   success: boolean; 
@@ -253,6 +255,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+        // FORCE LOGOUT if already signed in to handle clean switch
+        if (auth.currentUser) {
+            await signOut(auth);
+        }
         await loginUser(email, password);
         return true;
     } catch (error) {
@@ -553,7 +559,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       addSector, deleteSector, addUser, deleteUser, updateAnyUserSector, updateAnyUserRole,
       addDentist, deleteDentist, addJobType, deleteJobType, addBoxColor, deleteBoxColor,
       scanModalState, closeScanModal, confirmScanModal,
-      // EXPORTS DE ALERTA E TROCA RÁPIDA
+      // EXPORTS
       alerts, activeAlert, dismissAlert, createAlert,
       isQuickSwitchOpen, setQuickSwitchOpen
     }}>

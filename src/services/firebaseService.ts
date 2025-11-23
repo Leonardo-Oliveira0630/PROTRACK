@@ -252,6 +252,8 @@ export const deleteBoxColorFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, BOX_COLORS_COL, id));
 };
 
+// --- Alert Functions ---
+
 export const addAlertToFirestore = async (alert: Omit<Alert, 'id'>) => {
     await addDoc(collection(db, ALERTS_COL), alert);
 };
