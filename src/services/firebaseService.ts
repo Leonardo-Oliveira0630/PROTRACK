@@ -33,17 +33,14 @@ const JOB_TYPES_COL = 'job_types';
 const BOX_COLORS_COL = 'box_colors';
 const ALERTS_COL = 'alerts';
 
-// --- Subscriptions (Real-time) ---
+// --- Subscriptions ---
 
 export const subscribeToJobs = (callback: (jobs: Job[]) => void) => {
     const q = query(collection(db, JOBS_COL), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (snapshot) => {
         const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         callback(jobs);
-    }, (error) => {
-        if (error.code !== 'permission-denied') console.warn("Error jobs:", error);
-        callback([]);
-    });
+    }, (error) => callback([]));
 };
 
 export const subscribeToSectors = (callback: (sectors: Sector[]) => void) => {
@@ -51,10 +48,7 @@ export const subscribeToSectors = (callback: (sectors: Sector[]) => void) => {
     return onSnapshot(q, (snapshot) => {
         const sectors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sector));
         callback(sectors);
-    }, (error) => {
-         if (error.code !== 'permission-denied') console.warn("Error sectors:", error);
-        callback([]);
-    });
+    }, (error) => callback([]));
 };
 
 export const subscribeToUsers = (callback: (users: User[]) => void) => {
@@ -62,10 +56,7 @@ export const subscribeToUsers = (callback: (users: User[]) => void) => {
     return onSnapshot(q, (snapshot) => {
         const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
         callback(users);
-    }, (error) => {
-        if (error.code !== 'permission-denied') console.warn("Error users:", error);
-        callback([]);
-    });
+    }, (error) => callback([]));
 };
 
 export const subscribeToDentists = (callback: (dentists: Dentist[]) => void) => {
@@ -73,10 +64,7 @@ export const subscribeToDentists = (callback: (dentists: Dentist[]) => void) => 
     return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Dentist));
         callback(data);
-    }, (error) => {
-        if (error.code !== 'permission-denied') console.warn("Error dentists:", error);
-        callback([]);
-    });
+    }, (error) => callback([]));
 };
 
 export const subscribeToJobTypes = (callback: (types: JobType[]) => void) => {
@@ -84,10 +72,7 @@ export const subscribeToJobTypes = (callback: (types: JobType[]) => void) => {
     return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as JobType));
         callback(data);
-    }, (error) => {
-        if (error.code !== 'permission-denied') console.warn("Error job types:", error);
-        callback([]);
-    });
+    }, (error) => callback([]));
 };
 
 export const subscribeToBoxColors = (callback: (colors: BoxColor[]) => void) => {
@@ -95,13 +80,11 @@ export const subscribeToBoxColors = (callback: (colors: BoxColor[]) => void) => 
     return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BoxColor));
         callback(data);
-    }, (error) => {
-        if (error.code !== 'permission-denied') console.warn("Error box colors:", error);
-        callback([]);
-    });
+    }, (error) => callback([]));
 };
 
 export const subscribeToAlerts = (callback: (alerts: Alert[]) => void) => {
+    // Busca alertas dos últimos 7 dias para não carregar histórico muito antigo
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
@@ -110,10 +93,7 @@ export const subscribeToAlerts = (callback: (alerts: Alert[]) => void) => {
     return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Alert));
         callback(data);
-    }, (error) => {
-        if (error.code !== 'permission-denied') console.warn("Error alerts:", error);
-        callback([]);
-    });
+    }, (error) => callback([]));
 };
 
 // --- Auth Logic ---
@@ -252,7 +232,7 @@ export const deleteBoxColorFromFirestore = async (id: string) => {
     await deleteDoc(doc(db, BOX_COLORS_COL, id));
 };
 
-// --- Alert Functions ---
+// === FUNÇÕES DE ALERTA ===
 
 export const addAlertToFirestore = async (alert: Omit<Alert, 'id'>) => {
     await addDoc(collection(db, ALERTS_COL), alert);

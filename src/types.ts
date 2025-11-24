@@ -56,7 +56,7 @@ export interface JobHistory {
   sectorName: string;
   userId: string;
   userName: string;
-  changes?: string[]; // Array describing what changed (e.g. "Changed Urgency from Low to High")
+  changes?: string[];
 }
 
 export interface Job {
@@ -79,7 +79,7 @@ export interface Job {
   boxColor?: string; // Hex code
 }
 
-// INTERFACE QUE ESTAVA FALTANDO
+// === INTERFACE DE ALERTA ===
 export interface Alert {
   id: string;
   title: string;

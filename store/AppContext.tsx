@@ -196,6 +196,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, [currentUser?.id, currentUser?.role]);
 
+  // --- LÓGICA DE MONITORAMENTO DE ALERTAS ---
   useEffect(() => {
     if (!currentUser || alerts.length === 0) return;
 
@@ -204,16 +205,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         
         const pendingAlert = alerts.find(alert => {
             const triggerTime = new Date(alert.targetDate);
+            // Verifica se já passou da hora (>=)
             const isTime = now >= triggerTime;
+            // Verifica se o usuário já leu
             const isRead = alert.readBy.includes(currentUser.id);
             
             let isTarget = false;
             
+            // Verifica se o alerta é para este usuário ou setor
             if (alert.targetUserId) {
                 if (alert.targetUserId === currentUser.id) isTarget = true;
             } else if (alert.targetSectorId && alert.targetSectorId !== 'ALL') {
                 if (currentUser.sectorId === alert.targetSectorId) isTarget = true;
             } else {
+                // Se não tem alvo específico, é para todos (ou Gestores/Admins)
                 isTarget = true;
             }
 
@@ -226,6 +231,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     checkAlerts();
+    // Verifica a cada 10 segundos
     const interval = setInterval(checkAlerts, 10000);
 
     return () => clearInterval(interval);
@@ -255,7 +261,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-        // FORCE LOGOUT if already signed in to handle clean switch
+        // LOGOUT FORÇADO PARA TROCA LIMPA
         if (auth.currentUser) {
             await signOut(auth);
         }
@@ -559,7 +565,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       addSector, deleteSector, addUser, deleteUser, updateAnyUserSector, updateAnyUserRole,
       addDentist, deleteDentist, addJobType, deleteJobType, addBoxColor, deleteBoxColor,
       scanModalState, closeScanModal, confirmScanModal,
-      // EXPORTS
       alerts, activeAlert, dismissAlert, createAlert,
       isQuickSwitchOpen, setQuickSwitchOpen
     }}>
