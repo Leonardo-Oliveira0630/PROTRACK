@@ -82,6 +82,7 @@ interface AppState {
   addJob: (job: Job) => Promise<void>;
   updateJob: (jobId: string, updates: Partial<Job>) => Promise<void>;
   finishJob: (jobId: string) => Promise<void>;
+  reopenJob: (jobId: string) => Promise<void>; // NOVO
   updateJobReminder: (jobId: string, note: string) => Promise<void>;
   
   scanJob: (code: string) => Promise<ScanResult>;
@@ -196,32 +197,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, [currentUser?.id, currentUser?.role]);
 
-  // --- LÓGICA DE MONITORAMENTO DE ALERTAS ---
   useEffect(() => {
     if (!currentUser || alerts.length === 0) return;
 
     const checkAlerts = () => {
         const now = new Date();
-        
         const pendingAlert = alerts.find(alert => {
             const triggerTime = new Date(alert.targetDate);
-            // Verifica se já passou da hora (>=)
             const isTime = now >= triggerTime;
-            // Verifica se o usuário já leu
             const isRead = alert.readBy.includes(currentUser.id);
-            
             let isTarget = false;
-            
-            // Verifica se o alerta é para este usuário ou setor
             if (alert.targetUserId) {
                 if (alert.targetUserId === currentUser.id) isTarget = true;
             } else if (alert.targetSectorId && alert.targetSectorId !== 'ALL') {
                 if (currentUser.sectorId === alert.targetSectorId) isTarget = true;
             } else {
-                // Se não tem alvo específico, é para todos (ou Gestores/Admins)
                 isTarget = true;
             }
-
             return isTime && !isRead && isTarget;
         });
 
@@ -231,9 +223,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     checkAlerts();
-    // Verifica a cada 10 segundos
     const interval = setInterval(checkAlerts, 10000);
-
     return () => clearInterval(interval);
   }, [alerts, currentUser]);
 
@@ -245,14 +235,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const createAlert = async (alertData: Omit<Alert, 'id' | 'createdAt' | 'readBy' | 'createdBy'>) => {
       if (!currentUser) return;
-      
       const newAlert: Omit<Alert, 'id'> = {
           ...alertData,
           createdAt: new Date().toISOString(),
           createdBy: currentUser.id,
           readBy: []
       };
-      
       await addAlertToFirestore(newAlert);
   };
 
@@ -261,7 +249,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-        // LOGOUT FORÇADO PARA TROCA LIMPA
         if (auth.currentUser) {
             await signOut(auth);
         }
@@ -283,29 +270,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setIsMobileMenuOpen(false);
   };
 
+  // ATUALIZADO: ADD JOB COM ITENS
   const addJob = async (newJob: Job) => {
-    const { id, ...jobData } = newJob;
-    await addJobToFirestore(jobData as any);
+    const jobData = {
+        ...newJob,
+        items: newJob.items || [{ type: newJob.prosthesisType, quantity: 1 }]
+    };
+    const { id, ...data } = jobData;
+    await addJobToFirestore(data as any);
   };
 
   const updateJob = async (jobId: string, updates: Partial<Job>) => {
     if (!currentUser) return;
-
     const oldJob = jobs.find(j => j.id === jobId);
     if (!oldJob) return;
 
     const changes: string[] = [];
-
     if (updates.patientName && updates.patientName !== oldJob.patientName) changes.push(`Paciente alterado para: ${updates.patientName}`);
-    if (updates.dentistName && updates.dentistName !== oldJob.dentistName) changes.push(`Dentista alterado para: ${updates.dentistName}`);
     if (updates.urgency && updates.urgency !== oldJob.urgency) changes.push(`Urgência alterada: ${oldJob.urgency} -> ${updates.urgency}`);
-    if (updates.deliveryDate && updates.deliveryDate !== oldJob.deliveryDate) changes.push(`Entrega alterada para: ${new Date(updates.deliveryDate).toLocaleDateString()}`);
-    if (updates.description && updates.description !== oldJob.description) changes.push(`Descrição técnica atualizada`);
     if (updates.isPromised !== undefined && updates.isPromised !== oldJob.isPromised) changes.push(updates.isPromised ? "Marcado como PROMETIDO (VIP)" : "Removido de PROMETIDO");
-    if (updates.boxNumber && updates.boxNumber !== oldJob.boxNumber) changes.push(`Caixa alterada para: ${updates.boxNumber}`);
-
-    let newHistory = [...(oldJob.history || [])];
     
+    let newHistory = [...(oldJob.history || [])];
     if (changes.length > 0) {
         const historyEntry: JobHistory = {
             id: Date.now().toString(),
@@ -318,16 +303,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         };
         newHistory.push(historyEntry);
     }
-
     await updateJobInFirestore(jobId, { ...updates, history: newHistory });
   };
 
   const finishJob = async (jobId: string) => {
       if (!currentUser) return;
-      
       const oldJob = jobs.find(j => j.id === jobId);
       if (!oldJob) return;
-
       const historyEntry: JobHistory = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
@@ -337,11 +319,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         userName: currentUser.name,
         changes: ['Trabalho marcado como FINALIZADO']
     };
-
       await updateJobInFirestore(jobId, {
           status: JobStatus.COMPLETED,
           isFinished: true,
           history: [...oldJob.history, historyEntry]
+      });
+  };
+
+  // NOVO: FUNÇÃO PARA REABRIR CASO
+  const reopenJob = async (jobId: string) => {
+      if (!currentUser) return;
+      const oldJob = jobs.find(j => j.id === jobId);
+      if (!oldJob) return;
+
+      const historyEntry: JobHistory = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        action: 'REOPENED',
+        sectorName: 'Gestão',
+        userId: currentUser.id,
+        userName: currentUser.name,
+        changes: ['Trabalho REABERTO pelo gestor']
+      };
+
+      await updateJobInFirestore(jobId, {
+          status: JobStatus.IN_PROGRESS,
+          isFinished: false,
+          history: [...(oldJob.history || []), historyEntry]
       });
   };
 
@@ -352,137 +356,47 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const getJobByCode = (code: string) => jobs.find(j => j.code === code);
   const getJobById = (id: string) => jobs.find(j => j.id === id);
 
-  const addSector = async (name: string) => {
-    await addSectorToFirestore(name);
-  };
-  const deleteSector = async (id: string) => {
-    await deleteSectorFromFirestore(id);
-  };
-
-  const addUser = async (newUser: Omit<User, 'id'>) => {
-    await addUserToFirestore(newUser);
-  };
-  const deleteUser = async (id: string) => {
-    if (currentUser?.id === id) {
-      alert("Não é possível deletar o usuário logado atualmente.");
-      return;
-    }
-    await deleteUserFromFirestore(id);
-  };
-
-  const updateAnyUserSector = async (userId: string, sectorId: string) => {
-      await updateUserSector(userId, sectorId);
-  };
-
-  const updateAnyUserRole = async (userId: string, role: UserRole) => {
-      await updateUserRole(userId, role);
-  };
-
-  const addDentist = async (dentist: Omit<Dentist, 'id'>) => {
-      try {
-          await addDentistToFirestore(dentist);
-      } catch (e) {
-          console.warn("DB Permission denied for Dentist, falling back to local state.");
-          const tempId = `temp_${Date.now()}`;
-          setDentists(prev => [...prev, { ...dentist, id: tempId }]);
-      }
-  };
-  const deleteDentist = async (id: string) => {
-      try {
-          await deleteDentistFromFirestore(id);
-      } catch (e) {
-          setDentists(prev => prev.filter(d => d.id !== id));
-      }
-  };
-
-  const addJobType = async (name: string) => {
-      try {
-          await addJobTypeToFirestore(name);
-      } catch (e) {
-          console.warn("DB Permission denied for JobType, falling back to local state.");
-          const tempId = `temp_${Date.now()}`;
-          setJobTypes(prev => [...prev, { id: tempId, name }]);
-      }
-  };
-  const deleteJobType = async (id: string) => {
-      try {
-          await deleteJobTypeFromFirestore(id);
-      } catch (e) {
-          setJobTypes(prev => prev.filter(t => t.id !== id));
-      }
-  };
-
-  const addBoxColor = async (name: string, hex: string) => {
-      try {
-          await addBoxColorToFirestore(name, hex);
-      } catch (e) {
-          console.warn("DB Permission denied for BoxColor, falling back to local state.");
-          const tempId = `temp_${Date.now()}`;
-          setBoxColors(prev => [...prev, { id: tempId, name, hex }]);
-      }
-  };
-  const deleteBoxColor = async (id: string) => {
-      try {
-          await deleteBoxColorFromFirestore(id);
-      } catch (e) {
-          setBoxColors(prev => prev.filter(c => c.id !== id));
-      }
-  };
+  const addSector = async (name: string) => { await addSectorToFirestore(name); };
+  const deleteSector = async (id: string) => { await deleteSectorFromFirestore(id); };
+  const addUser = async (newUser: Omit<User, 'id'>) => { await addUserToFirestore(newUser); };
+  const deleteUser = async (id: string) => { if (currentUser?.id === id) return; await deleteUserFromFirestore(id); };
+  const updateAnyUserSector = async (userId: string, sectorId: string) => { await updateUserSector(userId, sectorId); };
+  const updateAnyUserRole = async (userId: string, role: UserRole) => { await updateUserRole(userId, role); };
+  const addDentist = async (dentist: Omit<Dentist, 'id'>) => { await addDentistToFirestore(dentist); };
+  const deleteDentist = async (id: string) => { await deleteDentistFromFirestore(id); };
+  const addJobType = async (name: string) => { await addJobTypeToFirestore(name); };
+  const deleteJobType = async (id: string) => { await deleteJobTypeFromFirestore(id); };
+  const addBoxColor = async (name: string, hex: string) => { await addBoxColorToFirestore(name, hex); };
+  const deleteBoxColor = async (id: string) => { await deleteBoxColorFromFirestore(id); };
 
   const analyzeScan = (code: string): ScanAnalysis => {
     if (!currentUser) return { action: 'ERROR', message: "Usuário não logado" };
-    
     const job = jobs.find(j => j.code === code);
     if (!job) return { action: 'ERROR', message: "Trabalho não encontrado" };
-
-    if (job.isFinished) {
-        return { action: 'INFO', message: "Trabalho já finalizado!", job };
-    }
-
-    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) {
-       return { action: 'INFO', message: "Visualização de Gestão", job };
-    }
+    if (job.isFinished) return { action: 'INFO', message: "Trabalho já finalizado!", job };
+    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) return { action: 'INFO', message: "Visualização de Gestão", job };
 
     const mySector = sectors.find(s => s.id === currentUser.sectorId);
-    if (!mySector && !currentUser.sectorId) return { action: 'ERROR', message: "Usuário sem setor configurado. Contate o Admin." };
-    
+    if (!mySector && !currentUser.sectorId) return { action: 'ERROR', message: "Usuário sem setor configurado" };
     const sectorName = mySector?.name || "Setor do Usuário";
     const isCurrentlyInMySector = job.currentSectorId === currentUser.sectorId;
-    
-    if (isCurrentlyInMySector) {
-        return { action: 'EXIT', message: `Confirmar SAÍDA de ${sectorName}?`, job, sectorName };
-    } else {
-        return { action: 'ENTRY', message: `Confirmar ENTRADA em ${sectorName}?`, job, sectorName };
-    }
+    return isCurrentlyInMySector ? { action: 'EXIT', message: `Confirmar SAÍDA de ${sectorName}?`, job, sectorName } : { action: 'ENTRY', message: `Confirmar ENTRADA em ${sectorName}?`, job, sectorName };
   };
 
   const triggerManualScan = (code: string) => {
     const analysis = analyzeScan(code);
-    setScanModalState({
-        isOpen: true,
-        code,
-        analysis
-    });
+    setScanModalState({ isOpen: true, code, analysis });
   };
 
   const scanJob = async (code: string): Promise<ScanResult> => {
     if (!currentUser) return { success: false, message: "Usuário não logado", type: 'ERROR' };
-    
     const job = jobs.find(j => j.code === code);
-    if (!job) return { success: false, message: "Trabalho não encontrado no sistema", type: 'ERROR' };
-
+    if (!job) return { success: false, message: "Trabalho não encontrado", type: 'ERROR' };
     if (job.isFinished) return { success: false, message: "Trabalho já finalizado", type: 'INFO' };
-
-    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) {
-       return { success: true, message: "Visualização de Gestão", type: 'INFO', jobDetails: job };
-    }
+    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER) return { success: true, message: "Visualização", type: 'INFO', jobDetails: job };
 
     const mySector = sectors.find(s => s.id === currentUser.sectorId);
-    if (!mySector && currentUser.sectorId) {
-         return { success: false, message: "Setor do usuário inválido", type: 'ERROR' };
-    }
-    const sectorName = mySector?.name || "Setor Desconhecido";
-
+    const sectorName = mySector?.name || "Setor";
     const isCurrentlyInMySector = job.currentSectorId === currentUser.sectorId;
     
     const historyEntry: JobHistory = {
@@ -495,20 +409,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     let updates: Partial<Job> = {};
-    
     if (isCurrentlyInMySector) {
         updates.history = [...job.history, historyEntry];
         updates.currentSectorId = null; 
         updates.status = JobStatus.IN_PROGRESS;
         await updateJobInFirestore(job.id, updates);
-        
         return { success: true, message: `Saída registrada: ${sectorName}`, type: 'EXIT', jobDetails: { ...job, ...updates } as Job };
     } else {
         updates.history = [...job.history, historyEntry];
         updates.currentSectorId = currentUser.sectorId || null;
         updates.status = JobStatus.IN_PROGRESS;
         await updateJobInFirestore(job.id, updates);
-
         return { success: true, message: `Entrada registrada: ${sectorName}`, type: 'ENTRY', jobDetails: { ...job, ...updates } as Job };
     }
   };
@@ -516,52 +427,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!currentUser) return;
-
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
       const now = Date.now();
-      if (now - lastKeyTimeRef.current > 100) {
-        bufferRef.current = '';
-      }
+      if (now - lastKeyTimeRef.current > 100) bufferRef.current = '';
       lastKeyTimeRef.current = now;
-
       if (e.key === 'Enter') {
         if (bufferRef.current.length > 2) {
           const code = bufferRef.current;
           const analysis = analyzeScan(code);
-          setScanModalState({
-            isOpen: true,
-            code,
-            analysis
-          });
+          setScanModalState({ isOpen: true, code, analysis });
         }
         bufferRef.current = '';
       } else if (e.key.length === 1) {
         bufferRef.current += e.key;
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [jobs, users, sectors, currentUser]);
 
-  const closeScanModal = () => {
-    setScanModalState(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const confirmScanModal = () => {
-    if (scanModalState.code) {
-      scanJob(scanModalState.code);
-      closeScanModal();
-    }
-  };
+  const closeScanModal = () => setScanModalState(prev => ({ ...prev, isOpen: false }));
+  const confirmScanModal = () => { if (scanModalState.code) { scanJob(scanModalState.code); closeScanModal(); } };
 
   return (
     <AppContext.Provider value={{ 
       currentUser, users, sectors, jobs, dentists, jobTypes, boxColors, isLoading,
       isMobileMenuOpen, toggleMobileMenu, setMobileMenuOpen,
-      login, register, logout, addJob, updateJob, finishJob, updateJobReminder, scanJob, analyzeScan, triggerManualScan, getJobByCode, getJobById,
+      login, register, logout, addJob, updateJob, finishJob, reopenJob, updateJobReminder, scanJob, analyzeScan, triggerManualScan, getJobByCode, getJobById,
       addSector, deleteSector, addUser, deleteUser, updateAnyUserSector, updateAnyUserRole,
       addDentist, deleteDentist, addJobType, deleteJobType, addBoxColor, deleteBoxColor,
       scanModalState, closeScanModal, confirmScanModal,

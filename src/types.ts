@@ -52,11 +52,17 @@ export interface BoxColor {
 export interface JobHistory {
   id: string;
   timestamp: string; // ISO Date
-  action: 'ENTRY' | 'EXIT' | 'CREATED' | 'EDIT' | 'FINISHED';
+  action: 'ENTRY' | 'EXIT' | 'CREATED' | 'EDIT' | 'FINISHED' | 'REOPENED';
   sectorName: string;
   userId: string;
   userName: string;
   changes?: string[];
+}
+
+// NOVA INTERFACE PARA ITENS
+export interface JobItem {
+  type: string;
+  quantity: number;
 }
 
 export interface Job {
@@ -64,7 +70,13 @@ export interface Job {
   code: string; // Barcode
   patientName: string; 
   dentistName: string; 
+  
+  // Alterado: Agora é opcional/resumo
   prosthesisType: string; 
+  
+  // Novo: Lista de itens
+  items?: JobItem[];
+
   description: string;
   createdAt: string;
   deliveryDate: string;
@@ -79,16 +91,15 @@ export interface Job {
   boxColor?: string; // Hex code
 }
 
-// === INTERFACE DE ALERTA ===
 export interface Alert {
   id: string;
   title: string;
   message: string;
-  targetDate: string; // ISO Date string
-  jobId?: string; // Optional link to a job
-  targetSectorId?: string; // 'ALL', specific ID, or null
-  targetUserId?: string; // Specific user ID or null
+  targetDate: string; 
+  jobId?: string; 
+  targetSectorId?: string; 
+  targetUserId?: string; 
   createdBy: string;
   createdAt: string;
-  readBy: string[]; // Array of user IDs who have acknowledged this alert
+  readBy: string[]; 
 }
