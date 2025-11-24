@@ -150,6 +150,30 @@ const JobDetails = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Paciente</label><input type="text" value={editForm.patientName} onChange={e => setEditForm({...editForm, patientName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg" /></div>
                             <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dentista</label><select value={editForm.dentistName} onChange={e => setEditForm({...editForm, dentistName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white"><option value="">Selecione...</option>{dentists.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}</select></div>
+                            
+                            {/* EDITABLE DATE AND URGENCY */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data de Entrega</label>
+                                <input 
+                                    type="date" 
+                                    value={editForm.deliveryDate} 
+                                    onChange={e => setEditForm({...editForm, deliveryDate: e.target.value})} 
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Urgência</label>
+                                <select 
+                                    value={editForm.urgency} 
+                                    onChange={e => setEditForm({...editForm, urgency: e.target.value as UrgencyLevel})} 
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white focus:border-blue-500 outline-none"
+                                >
+                                    {Object.values(UrgencyLevel).map(level => (
+                                        <option key={level} value={level}>{level}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label><textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg h-24" /></div>
                              <div className="grid grid-cols-2 gap-4 col-span-2">
                                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Caixa #</label><input type="text" value={editForm.boxNumber} onChange={e => setEditForm({...editForm, boxNumber: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-center font-bold" /></div>

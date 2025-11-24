@@ -22,7 +22,6 @@ const ProductionCalendar = () => {
 
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-  // Helper to get jobs for a specific day
   const getJobsForDay = (day: number) => {
     return jobs.filter(job => {
       const d = new Date(job.deliveryDate);
@@ -30,21 +29,25 @@ const ProductionCalendar = () => {
     });
   };
 
-  // Helper to verify if day is today
   const isToday = (day: number) => {
     const today = new Date();
     return day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
   };
 
+  const getContrastColor = (hexColor: string) => {
+    if (!hexColor) return '#FFFFFF';
+    const r = parseInt(hexColor.substr(1, 2), 16);
+    const g = parseInt(hexColor.substr(3, 2), 16);
+    const b = parseInt(hexColor.substr(5, 2), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? '#0f172a' : '#FFFFFF'; 
+  };
+
   const renderCalendarGrid = () => {
     const days = [];
-    
-    // Empty slots for previous month
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-24 md:h-32 bg-slate-50/50 border border-slate-100"></div>);
     }
-
-    // Days of current month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayJobs = getJobsForDay(day);
       const isSelected = selectedDay === day;
@@ -62,7 +65,6 @@ const ProductionCalendar = () => {
           <div className={`text-sm font-bold mb-2 ${isToday(day) ? 'bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30' : 'text-slate-700'}`}>
             {day}
           </div>
-          
           <div className="flex flex-col gap-1">
             {promisedCount > 0 && (
               <div className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-yellow-200 flex items-center gap-1 truncate">
@@ -102,7 +104,6 @@ const ProductionCalendar = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar Grid */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
            <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => (
@@ -114,7 +115,6 @@ const ProductionCalendar = () => {
            </div>
         </div>
 
-        {/* Side Panel: Jobs for Selected Day */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col h-[600px]">
           <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2 pb-4 border-b border-slate-100">
              Entregas para dia {selectedDay}/{month + 1}
@@ -131,18 +131,33 @@ const ProductionCalendar = () => {
                  <div 
                     key={job.id} 
                     onClick={() => navigate(`/jobs/${job.id}`)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
+                    className={`p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md flex items-center gap-3 ${
                        job.isPromised ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-100'
                     }`}
                  >
-                    <div className="flex justify-between items-start mb-1">
-                       <span className="font-bold text-slate-800 text-sm">{job.patientName}</span>
-                       {job.isFinished && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 rounded font-bold">OK</span>}
+                    {/* BOX NUMBER HIGHLIGHT */}
+                    <div 
+                        className="h-12 w-12 rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-black/5"
+                        style={{ backgroundColor: job.boxColor || '#94a3b8' }}
+                    >
+                        <span 
+                            className="text-lg font-black leading-none drop-shadow-sm"
+                            style={{ color: getContrastColor(job.boxColor || '#94a3b8') }}
+                        >
+                            {job.boxNumber || '?'}
+                        </span>
                     </div>
-                    <p className="text-xs text-slate-500 mb-2 truncate">{job.prosthesisType}</p>
-                    <div className="flex justify-between items-center text-[10px] font-medium text-slate-400">
-                       <span>#{job.code}</span>
-                       <span>{job.dentistName}</span>
+
+                    <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-0.5">
+                            <span className="font-bold text-slate-800 text-sm truncate pr-2">{job.patientName}</span>
+                            {job.isFinished && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 rounded font-bold">OK</span>}
+                        </div>
+                        <p className="text-xs text-slate-500 truncate mb-1">{job.prosthesisType}</p>
+                        <div className="flex justify-between items-center text-[10px] font-medium text-slate-400">
+                            <span>#{job.code}</span>
+                            <span className="truncate max-w-[80px]">{job.dentistName}</span>
+                        </div>
                     </div>
                  </div>
                ))
