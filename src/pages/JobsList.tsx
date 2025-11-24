@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown, Box, ScanBarcode, Calendar, User, X } from 'lucide-react';
+import { Search, Filter, ChevronRight, Layers, CheckCircle, History, FileDown, Box, ScanBarcode, Calendar, User, X, FileText } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { JobStatus, UrgencyLevel, UserRole } from '../types';
@@ -8,7 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const JobsList = () => {
-  const { jobs, sectors, users, finishJob, currentUser, triggerManualScan } = useApp();
+  const { jobs, sectors, users, finishJob, currentUser, triggerManualScan, jobTypes } = useApp();
   const navigate = useNavigate();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,23 +18,17 @@ const JobsList = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [filterCollaborator, setFilterCollaborator] = useState<string>('ALL');
+  const [filterJobType, setFilterJobType] = useState<string>('ALL');
 
   const isManagement = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER;
 
-  // Helper function to determine text color based on background luminance
   const getContrastColor = (hexColor: string) => {
     if (!hexColor) return '#FFFFFF';
-    
-    // Convert hex to RGB
     const r = parseInt(hexColor.substr(1, 2), 16);
     const g = parseInt(hexColor.substr(3, 2), 16);
     const b = parseInt(hexColor.substr(5, 2), 16);
-    
-    // Calculate luminance (standard formula)
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    
-    // Return black for bright colors, white for dark colors
-    return (yiq >= 128) ? '#0f172a' : '#FFFFFF'; // slate-900 or white
+    return (yiq >= 128) ? '#0f172a' : '#FFFFFF'; 
   };
 
   const filteredJobs = jobs.filter(job => {
@@ -49,6 +43,8 @@ const JobsList = () => {
     const matchesSector = 
         filterSector === 'ALL' || 
         (filterSector === 'TRANSIT' ? job.currentSectorId === null : job.currentSectorId === filterSector);
+    
+    const matchesJobType = filterJobType === 'ALL' || job.prosthesisType === filterJobType;
 
     let matchesDate = true;
     if (startDate) {
@@ -68,7 +64,7 @@ const JobsList = () => {
         if (!hasWorkedOnJob) matchesCollaborator = false;
     }
 
-    return matchesSearch && matchesStatus && matchesUrgency && matchesSector && matchesDate && matchesCollaborator;
+    return matchesSearch && matchesStatus && matchesUrgency && matchesSector && matchesDate && matchesCollaborator && matchesJobType;
   });
 
   const getSectorName = (id: string | null) => {
@@ -91,6 +87,7 @@ const JobsList = () => {
       setFilterStatus('ALL');
       setFilterUrgency('ALL');
       setFilterSector('ALL');
+      setFilterJobType('ALL');
       setStartDate('');
       setEndDate('');
       setFilterCollaborator('ALL');
@@ -160,7 +157,7 @@ const JobsList = () => {
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
                 />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <select 
                     value={filterSector}
                     onChange={(e) => setFilterSector(e.target.value)}
@@ -169,6 +166,14 @@ const JobsList = () => {
                     <option value="ALL">Todos os Setores</option>
                     <option value="TRANSIT">Em Trânsito</option>
                     {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                 <select 
+                    value={filterJobType}
+                    onChange={(e) => setFilterJobType(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 text-sm font-medium"
+                >
+                    <option value="ALL">Todos Tipos</option>
+                    {jobTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                 </select>
                 <select 
                     value={filterStatus}
@@ -181,7 +186,7 @@ const JobsList = () => {
                 <select 
                     value={filterUrgency}
                     onChange={(e) => setFilterUrgency(e.target.value)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 text-sm font-medium col-span-2 md:col-span-1"
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white text-slate-700 text-sm font-medium"
                 >
                     <option value="ALL">Todas Urgências</option>
                     {Object.values(UrgencyLevel).map(u => <option key={u} value={u}>{u}</option>)}

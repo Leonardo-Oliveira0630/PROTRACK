@@ -45,7 +45,6 @@ const JobDetails = () => {
       );
   }
 
-  // FIX: Prevent crash if history is undefined
   const sortedHistory = [...(job.history || [])].sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
@@ -84,31 +83,22 @@ const JobDetails = () => {
 
   const handleCreateAlert = async (e: React.FormEvent) => {
       e.preventDefault();
-
-      // FIX: Create object conditionally to avoid 'undefined' values
       const alertPayload: any = {
           title: alertForm.title,
           message: alertForm.message,
           targetDate: new Date(alertForm.targetDate).toISOString(),
           jobId: job.code,
       };
-
-      if (alertForm.targetType === 'SECTOR' && alertForm.targetId) {
-          alertPayload.targetSectorId = alertForm.targetId;
-      }
-      if (alertForm.targetType === 'USER' && alertForm.targetId) {
-          alertPayload.targetUserId = alertForm.targetId;
-      }
+      if (alertForm.targetType === 'SECTOR' && alertForm.targetId) alertPayload.targetSectorId = alertForm.targetId;
+      if (alertForm.targetType === 'USER' && alertForm.targetId) alertPayload.targetUserId = alertForm.targetId;
 
       await createAlert(alertPayload);
-      
       setIsAlertModalOpen(false);
       alert("Alarme agendado com sucesso!");
   };
 
   return (
     <div className="max-w-5xl mx-auto pb-12 relative">
-      
       {isAlertModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
@@ -117,58 +107,23 @@ const JobDetails = () => {
                       <button onClick={() => setIsAlertModalOpen(false)} className="hover:bg-red-700 p-1 rounded-full"><X size={20}/></button>
                   </div>
                   <form onSubmit={handleCreateAlert} className="p-6 space-y-4">
-                      <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Título do Alerta</label>
-                          <input type="text" value={alertForm.title} onChange={e => setAlertForm({...alertForm, title: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700" required />
-                      </div>
-                      <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mensagem</label>
-                          <textarea value={alertForm.message} onChange={e => setAlertForm({...alertForm, message: e.target.value})} placeholder="Ex: Prioridade máxima!" className="w-full px-3 py-2 border border-slate-300 rounded-lg h-24 resize-none" required />
-                      </div>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Título</label><input type="text" value={alertForm.title} onChange={e => setAlertForm({...alertForm, title: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700" required /></div>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mensagem</label><textarea value={alertForm.message} onChange={e => setAlertForm({...alertForm, message: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg h-24 resize-none" required /></div>
                       <div className="grid grid-cols-2 gap-4">
-                          <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data/Hora Disparo</label>
-                              <input type="datetime-local" value={alertForm.targetDate} onChange={e => setAlertForm({...alertForm, targetDate: e.target.value})} className="w-full px-2 py-2 border border-slate-300 rounded-lg text-xs" required />
-                          </div>
-                          <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo de Alvo</label>
-                              <select value={alertForm.targetType} onChange={e => setAlertForm({...alertForm, targetType: e.target.value, targetId: ''})} className="w-full px-2 py-2 border border-slate-300 rounded-lg text-xs bg-white">
-                                  <option value="SECTOR">Setor</option>
-                                  <option value="USER">Colaborador Específico</option>
-                              </select>
-                          </div>
+                          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data/Hora</label><input type="datetime-local" value={alertForm.targetDate} onChange={e => setAlertForm({...alertForm, targetDate: e.target.value})} className="w-full px-2 py-2 border border-slate-300 rounded-lg text-xs" required /></div>
+                          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Alvo</label><select value={alertForm.targetType} onChange={e => setAlertForm({...alertForm, targetType: e.target.value, targetId: ''})} className="w-full px-2 py-2 border border-slate-300 rounded-lg text-xs bg-white"><option value="SECTOR">Setor</option><option value="USER">Usuário</option></select></div>
                       </div>
-                      <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Alvo do Alerta</label>
-                          <select value={alertForm.targetId} onChange={e => setAlertForm({...alertForm, targetId: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
-                              <option value="">{alertForm.targetType === 'SECTOR' ? 'Todos os Setores' : 'Qualquer Colaborador'}</option>
-                              {alertForm.targetType === 'SECTOR' ? (
-                                  sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)
-                              ) : (
-                                  users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)
-                              )}
-                          </select>
-                      </div>
-                      <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
-                          <Send size={18} /> Agendar Alerta
-                      </button>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Destinatário</label><select value={alertForm.targetId} onChange={e => setAlertForm({...alertForm, targetId: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"><option value="">{alertForm.targetType === 'SECTOR' ? 'Todos' : 'Qualquer'}</option>{alertForm.targetType === 'SECTOR' ? sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>) : users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+                      <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg">Agendar Alerta</button>
                   </form>
               </div>
           </div>
       )}
 
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-            <ArrowLeft size={20} />
-        </button>
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"><ArrowLeft size={20} /></button>
         <h2 className="text-lg md:text-2xl font-bold text-slate-900 truncate">
-            {/* HEADER ATUALIZADO PARA DESTAQUE DE CAIXA */}
-            <span 
-                className="inline-block mr-3 px-3 py-1 rounded-lg text-white text-sm align-middle shadow-sm"
-                style={{ backgroundColor: job.boxColor || '#94a3b8' }}
-            >
-                CX {job.boxNumber || '?'}
-            </span>
+            <span className="inline-block mr-3 px-3 py-1 rounded-lg text-white text-sm align-middle shadow-sm" style={{ backgroundColor: job.boxColor || '#94a3b8' }}>CX {job.boxNumber || '?'}</span>
             Detalhes do Caso #{job.code}
         </h2>
       </div>
@@ -178,107 +133,63 @@ const JobDetails = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative">
                 <div className="absolute top-6 right-6 flex gap-2">
                     {isManagement && !isEditing && !job.isFinished && (
-                        <button onClick={() => setIsAlertModalOpen(true)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors border border-red-100" title="Criar Alerta de Urgência">
-                            <BellRing size={14} /> <span className="hidden sm:inline">Alerta</span>
-                        </button>
+                        <button onClick={() => setIsAlertModalOpen(true)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors border border-red-100"><BellRing size={14} /> <span className="hidden sm:inline">Alerta</span></button>
                     )}
                     {isEditing ? (
                         <>
-                            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition-colors shadow-md">
-                                <Save size={14} /> <span className="hidden sm:inline">Salvar</span>
-                            </button>
-                            <button onClick={() => setIsEditing(false)} className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors">
-                                <X size={14} /> <span className="hidden sm:inline">Cancelar</span>
-                            </button>
+                            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition-colors shadow-md"><Save size={14} /> <span className="hidden sm:inline">Salvar</span></button>
+                            <button onClick={() => setIsEditing(false)} className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors"><X size={14} /> <span className="hidden sm:inline">Cancelar</span></button>
                         </>
                     ) : (
-                        <button onClick={handleEditToggle} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
-                            <Edit size={14} /> <span className="hidden sm:inline">Editar Caso</span>
-                        </button>
+                        <button onClick={handleEditToggle} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"><Edit size={14} /> <span className="hidden sm:inline">Editar Caso</span></button>
                     )}
                 </div>
                 
-                {/* CONTENT DISPLAY / EDIT MODE */}
                 <div className="space-y-6 mt-2">
                     {isEditing ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* EDIT FORM FIELDS */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Paciente</label>
-                                <input type="text" value={editForm.patientName} onChange={e => setEditForm({...editForm, patientName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dentista</label>
-                                <select value={editForm.dentistName} onChange={e => setEditForm({...editForm, dentistName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white">
-                                    <option value="">Selecione...</option>
-                                    {dentists.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                                </select>
-                            </div>
-                            {/* ... other fields (prosthesis, description, dates, box info) ... */}
-                            <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label>
-                                <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg h-24" />
-                            </div>
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Paciente</label><input type="text" value={editForm.patientName} onChange={e => setEditForm({...editForm, patientName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dentista</label><select value={editForm.dentistName} onChange={e => setEditForm({...editForm, dentistName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white"><option value="">Selecione...</option>{dentists.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}</select></div>
+                            <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label><textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg h-24" /></div>
                              <div className="grid grid-cols-2 gap-4 col-span-2">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Caixa #</label>
-                                    <input type="text" value={editForm.boxNumber} onChange={e => setEditForm({...editForm, boxNumber: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-center font-bold" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cor</label>
-                                    <div className="flex gap-2 flex-wrap">
-                                        {boxColors.map(c => (
-                                            <button key={c.id} onClick={() => setEditForm({...editForm, boxColor: c.hex})} type="button" className={`w-8 h-8 rounded-full border-2 ${editForm.boxColor === c.hex ? 'border-slate-800 scale-110' : 'border-transparent'}`} style={{backgroundColor: c.hex}} />
-                                        ))}
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Caixa #</label><input type="text" value={editForm.boxNumber} onChange={e => setEditForm({...editForm, boxNumber: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-center font-bold" /></div>
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cor</label><div className="flex gap-2 flex-wrap">{boxColors.map(c => (<button key={c.id} onClick={() => setEditForm({...editForm, boxColor: c.hex})} type="button" className={`w-8 h-8 rounded-full border-2 ${editForm.boxColor === c.hex ? 'border-slate-800 scale-110' : 'border-transparent'}`} style={{backgroundColor: c.hex}} />))}</div></div>
+                            </div>
+                            <div className="col-span-2 border-t border-slate-100 pt-4">
+                                <label className="flex items-center gap-3 cursor-pointer bg-yellow-50 p-3 rounded-lg border border-yellow-100 hover:bg-yellow-100 transition-colors">
+                                    <div className="relative flex items-center">
+                                        <input type="checkbox" checked={editForm.isPromised} onChange={e => setEditForm({...editForm, isPromised: e.target.checked})} className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-yellow-400 transition-all checked:bg-yellow-500" />
+                                        <Star className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100" size={12} strokeWidth={3} />
                                     </div>
-                                </div>
+                                    <span className="text-sm font-bold text-yellow-800">Marcar como Caso Prometido (VIP)</span>
+                                </label>
                             </div>
                         </div>
                     ) : (
                         <>
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${job.isPromised ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100 text-slate-600'}`}>
-                                        {job.isPromised ? 'VIP / Prometido' : 'Padrão'}
-                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${job.isPromised ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100 text-slate-600'}`}>{job.isPromised ? 'VIP / Prometido' : 'Padrão'}</span>
                                     <StatusBadge status={job.status} />
                                 </div>
                                 <h1 className="text-3xl font-bold text-slate-900">{job.patientName}</h1>
-                                <p className="text-slate-500 font-medium flex items-center gap-1 mt-1">
-                                    <User size={16} /> Dr(a). {job.dentistName}
-                                </p>
+                                <p className="text-slate-500 font-medium flex items-center gap-1 mt-1"><User size={16} /> Dr(a). {job.dentistName}</p>
                             </div>
-
                             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Serviço</span>
-                                    <p className="font-bold text-slate-800">{job.prosthesisType}</p>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Entrega Prevista</span>
-                                    <p className="font-bold text-slate-800 flex items-center gap-2">
-                                        <Calendar size={16} className="text-blue-500" />
-                                        {new Date(job.deliveryDate).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                <div className="md:col-span-2 border-t border-slate-200 pt-4 mt-2">
-                                    <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Observações Técnicas</span>
-                                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line">{job.description}</p>
-                                </div>
+                                <div><span className="text-xs font-bold text-slate-400 uppercase block mb-1">Serviço</span><p className="font-bold text-slate-800">{job.prosthesisType}</p></div>
+                                <div><span className="text-xs font-bold text-slate-400 uppercase block mb-1">Entrega Prevista</span><p className="font-bold text-slate-800 flex items-center gap-2"><Calendar size={16} className="text-blue-500" />{new Date(job.deliveryDate).toLocaleDateString()}</p></div>
+                                <div className="md:col-span-2 border-t border-slate-200 pt-4 mt-2"><span className="text-xs font-bold text-slate-400 uppercase block mb-1">Observações Técnicas</span><p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line">{job.description}</p></div>
                             </div>
                         </>
                     )}
                 </div>
             </div>
         </div>
-
         <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full">
                 <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Activity className="text-blue-500" /> Linha do Tempo</h3>
                 <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                    {sortedHistory.length === 0 ? (
-                        <p className="text-sm text-slate-400 italic ml-12">Nenhum histórico registrado.</p>
-                    ) : (
+                    {sortedHistory.length === 0 ? (<p className="text-sm text-slate-400 italic ml-12">Nenhum histórico registrado.</p>) : (
                         sortedHistory.map((event) => {
                             const isFinish = event.action === 'FINISHED';
                             const isEdit = event.action === 'EDIT';
@@ -290,16 +201,7 @@ const JobDetails = () => {
                                         {isFinish ? <CheckCircle2 size={16} /> : isEdit ? <Edit size={16} /> : isCreated ? <FileText size={16} /> : isEntry ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
                                     </div>
                                     <div className="ml-16 w-full">
-                                        <div className="flex flex-col">
-                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">{new Date(event.timestamp).toLocaleString()}</span>
-                                            <h4 className="font-bold text-slate-800 text-sm">{isFinish ? 'Trabalho Finalizado' : isEdit ? 'Edição de Dados' : isCreated ? 'Trabalho Criado' : event.action === 'ENTRY' ? 'Entrada no Setor' : 'Saída do Setor'}</h4>
-                                            <div className="text-xs font-medium text-blue-600 mt-0.5 mb-2">{event.sectorName} • {event.userName}</div>
-                                            {event.changes && event.changes.length > 0 && (
-                                                <div className="bg-amber-50 p-2 rounded border border-amber-100 text-xs text-amber-800 space-y-1">
-                                                    {event.changes.map((change, i) => (<div key={i}>• {change}</div>))}
-                                                </div>
-                                            )}
-                                        </div>
+                                        <div className="flex flex-col"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">{new Date(event.timestamp).toLocaleString()}</span><h4 className="font-bold text-slate-800 text-sm">{isFinish ? 'Trabalho Finalizado' : isEdit ? 'Edição de Dados' : isCreated ? 'Trabalho Criado' : event.action === 'ENTRY' ? 'Entrada no Setor' : 'Saída do Setor'}</h4><div className="text-xs font-medium text-blue-600 mt-0.5 mb-2">{event.sectorName} • {event.userName}</div>{event.changes && event.changes.length > 0 && (<div className="bg-amber-50 p-2 rounded border border-amber-100 text-xs text-amber-800 space-y-1">{event.changes.map((change, i) => (<div key={i}>• {change}</div>))}</div>)}</div>
                                     </div>
                                 </div>
                             );
