@@ -304,7 +304,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (updates.isPromised !== undefined && updates.isPromised !== oldJob.isPromised) changes.push(updates.isPromised ? "Marcado como PROMETIDO (VIP)" : "Removido de PROMETIDO");
     if (updates.boxNumber && updates.boxNumber !== oldJob.boxNumber) changes.push(`Caixa alterada para: ${updates.boxNumber}`);
 
-    let newHistory = [...oldJob.history];
+    let newHistory = [...(oldJob.history || [])];
     
     if (changes.length > 0) {
         const historyEntry: JobHistory = {

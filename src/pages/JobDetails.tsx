@@ -45,7 +45,8 @@ const JobDetails = () => {
       );
   }
 
-  const sortedHistory = [...job.history].sort((a, b) => 
+  // FIX: Prevent crash if history is undefined
+  const sortedHistory = [...(job.history || [])].sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
@@ -84,8 +85,8 @@ const JobDetails = () => {
   const handleCreateAlert = async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // CORREÇÃO APLICADA AQUI
-      const alertPayload: Omit<Alert, 'id' | 'createdAt' | 'readBy' | 'createdBy'> = {
+      // FIX: Create object conditionally to avoid 'undefined' values
+      const alertPayload: any = {
           title: alertForm.title,
           message: alertForm.message,
           targetDate: new Date(alertForm.targetDate).toISOString(),
@@ -160,7 +161,16 @@ const JobDetails = () => {
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
             <ArrowLeft size={20} />
         </button>
-        <h2 className="text-lg md:text-2xl font-bold text-slate-900 truncate">Detalhes do Caso #{job.code}</h2>
+        <h2 className="text-lg md:text-2xl font-bold text-slate-900 truncate">
+            {/* HEADER ATUALIZADO PARA DESTAQUE DE CAIXA */}
+            <span 
+                className="inline-block mr-3 px-3 py-1 rounded-lg text-white text-sm align-middle shadow-sm"
+                style={{ backgroundColor: job.boxColor || '#94a3b8' }}
+            >
+                CX {job.boxNumber || '?'}
+            </span>
+            Detalhes do Caso #{job.code}
+        </h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -187,46 +197,114 @@ const JobDetails = () => {
                         </button>
                     )}
                 </div>
-                {isEditing ? (
-                    <div className="space-y-4 mt-2">
-                        {/* Edit Form */}
-                    </div>
-                ) : (
-                    <>
-                        {/* Display Info */}
-                    </>
-                )}
-            </div>
-        </div>
-        <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full">
-                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Activity className="text-blue-500" /> Linha do Tempo</h3>
-                <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                    {sortedHistory.map((event) => {
-                        const isFinish = event.action === 'FINISHED';
-                        const isEdit = event.action === 'EDIT';
-                        const isCreated = event.action === 'CREATED';
-                        const isEntry = event.action === 'ENTRY';
-                        return (
-                            <div key={event.id} className="relative flex items-start group">
-                                <div className={`absolute left-0 h-10 w-10 flex items-center justify-center rounded-full border-4 border-white shadow-sm z-10 ${ isFinish ? 'bg-green-500 text-white' : isEdit ? 'bg-amber-500 text-white' : isCreated ? 'bg-blue-500 text-white' : isEntry ? 'bg-purple-500 text-white' : 'bg-slate-400 text-white' }`}>
-                                    {isFinish ? <CheckCircle2 size={16} /> : isEdit ? <Edit size={16} /> : isCreated ? <FileText size={16} /> : isEntry ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+                
+                {/* CONTENT DISPLAY / EDIT MODE */}
+                <div className="space-y-6 mt-2">
+                    {isEditing ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* EDIT FORM FIELDS */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Paciente</label>
+                                <input type="text" value={editForm.patientName} onChange={e => setEditForm({...editForm, patientName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Dentista</label>
+                                <select value={editForm.dentistName} onChange={e => setEditForm({...editForm, dentistName: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white">
+                                    <option value="">Selecione...</option>
+                                    {dentists.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                                </select>
+                            </div>
+                            {/* ... other fields (prosthesis, description, dates, box info) ... */}
+                            <div className="col-span-2">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label>
+                                <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg h-24" />
+                            </div>
+                             <div className="grid grid-cols-2 gap-4 col-span-2">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Caixa #</label>
+                                    <input type="text" value={editForm.boxNumber} onChange={e => setEditForm({...editForm, boxNumber: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-center font-bold" />
                                 </div>
-                                <div className="ml-16 w-full">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">{new Date(event.timestamp).toLocaleString()}</span>
-                                        <h4 className="font-bold text-slate-800 text-sm">{isFinish ? 'Trabalho Finalizado' : isEdit ? 'Edição de Dados' : isCreated ? 'Trabalho Criado' : event.action === 'ENTRY' ? 'Entrada no Setor' : 'Saída do Setor'}</h4>
-                                        <div className="text-xs font-medium text-blue-600 mt-0.5 mb-2">{event.sectorName} • {event.userName}</div>
-                                        {event.changes && event.changes.length > 0 && (
-                                            <div className="bg-amber-50 p-2 rounded border border-amber-100 text-xs text-amber-800 space-y-1">
-                                                {event.changes.map((change, i) => (<div key={i}>• {change}</div>))}
-                                            </div>
-                                        )}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cor</label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {boxColors.map(c => (
+                                            <button key={c.id} onClick={() => setEditForm({...editForm, boxColor: c.hex})} type="button" className={`w-8 h-8 rounded-full border-2 ${editForm.boxColor === c.hex ? 'border-slate-800 scale-110' : 'border-transparent'}`} style={{backgroundColor: c.hex}} />
+                                        ))}
                                     </div>
                                 </div>
                             </div>
-                        );
-                    })}
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${job.isPromised ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100 text-slate-600'}`}>
+                                        {job.isPromised ? 'VIP / Prometido' : 'Padrão'}
+                                    </span>
+                                    <StatusBadge status={job.status} />
+                                </div>
+                                <h1 className="text-3xl font-bold text-slate-900">{job.patientName}</h1>
+                                <p className="text-slate-500 font-medium flex items-center gap-1 mt-1">
+                                    <User size={16} /> Dr(a). {job.dentistName}
+                                </p>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Serviço</span>
+                                    <p className="font-bold text-slate-800">{job.prosthesisType}</p>
+                                </div>
+                                <div>
+                                    <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Entrega Prevista</span>
+                                    <p className="font-bold text-slate-800 flex items-center gap-2">
+                                        <Calendar size={16} className="text-blue-500" />
+                                        {new Date(job.deliveryDate).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <div className="md:col-span-2 border-t border-slate-200 pt-4 mt-2">
+                                    <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Observações Técnicas</span>
+                                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line">{job.description}</p>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full">
+                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Activity className="text-blue-500" /> Linha do Tempo</h3>
+                <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                    {sortedHistory.length === 0 ? (
+                        <p className="text-sm text-slate-400 italic ml-12">Nenhum histórico registrado.</p>
+                    ) : (
+                        sortedHistory.map((event) => {
+                            const isFinish = event.action === 'FINISHED';
+                            const isEdit = event.action === 'EDIT';
+                            const isCreated = event.action === 'CREATED';
+                            const isEntry = event.action === 'ENTRY';
+                            return (
+                                <div key={event.id} className="relative flex items-start group">
+                                    <div className={`absolute left-0 h-10 w-10 flex items-center justify-center rounded-full border-4 border-white shadow-sm z-10 ${ isFinish ? 'bg-green-500 text-white' : isEdit ? 'bg-amber-500 text-white' : isCreated ? 'bg-blue-500 text-white' : isEntry ? 'bg-purple-500 text-white' : 'bg-slate-400 text-white' }`}>
+                                        {isFinish ? <CheckCircle2 size={16} /> : isEdit ? <Edit size={16} /> : isCreated ? <FileText size={16} /> : isEntry ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+                                    </div>
+                                    <div className="ml-16 w-full">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">{new Date(event.timestamp).toLocaleString()}</span>
+                                            <h4 className="font-bold text-slate-800 text-sm">{isFinish ? 'Trabalho Finalizado' : isEdit ? 'Edição de Dados' : isCreated ? 'Trabalho Criado' : event.action === 'ENTRY' ? 'Entrada no Setor' : 'Saída do Setor'}</h4>
+                                            <div className="text-xs font-medium text-blue-600 mt-0.5 mb-2">{event.sectorName} • {event.userName}</div>
+                                            {event.changes && event.changes.length > 0 && (
+                                                <div className="bg-amber-50 p-2 rounded border border-amber-100 text-xs text-amber-800 space-y-1">
+                                                    {event.changes.map((change, i) => (<div key={i}>• {change}</div>))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </div>
         </div>
